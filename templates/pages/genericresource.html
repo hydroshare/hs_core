@@ -1,5 +1,5 @@
 {% extends "pages/page.html" %}
-{% load geoanalytics_tags pages_tags mezzanine_tags %}
+{% load geoanalytics_tags pages_tags mezzanine_tags keyword_tags comment_tags %}
 
 {% block main %}
     {% set_page_permissions page %}
@@ -11,7 +11,7 @@
 </div>
 
 <h4>Download files</h4>
-<div class='row'>
+<div class='row well'>
 {% if page.genericresource.resource_file %}
     <a class='btn btn-lg btn-primary' href='{{page.genericresource.resource_file.url}}'>{{ page.genericresource.resource_file.name }}</a>
 {% elif page.genericresource.resource_url %}
@@ -19,7 +19,7 @@
 {% endif %}
 </div>
 
-<hr/>
+<h4>Resource attributes</h4>
 <div class='row'>
     <ul class='list-group'>
         {% editable page.genericresource.discoverable %}
@@ -70,14 +70,17 @@
 
 <h4>Keywords</h4>
 
+{% keywords_for page as keywords %}
 <ul class='list-group'>
     {% editable page.keywords %} 
-    {% for keyword in page.keywords.all %}
+    {% for keyword in keywords %}
     <li class='list-group-item'>{{ keyword }}</li>
     {% endfor %}
     {% endeditable %}
 </ul>
     
     {% include 'pages/includes/page_permissions_editor.html' %}
+
+{% comments_for page.genericresource %}
 
 {% endblock %}

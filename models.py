@@ -4,6 +4,7 @@ from django.db import models
 from mezzanine.pages.models import Page, RichText
 from ga_resources.models import PagePermissionsMixin
 from mezzanine.core.models import Ownable
+from mezzanine.generic.fields import CommentsField
 # from dublincore.models import QualifiedDublinCoreElement
 
 def get_user(request):
@@ -264,6 +265,7 @@ class AbstractResource(ResourcePermissionsMixin):
         'dublincore.QualifiedDublinCoreElement',
         help_text='The dublin core metadata of the resource'
     )
+    comments = CommentsField()
 
     class Meta: 
         abstract = True
