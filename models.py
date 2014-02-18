@@ -23,7 +23,7 @@ def get_user(request):
 
 class ResourcePermissionsMixin(Ownable):
     creator = models.ForeignKey(User,
-        related_name='creator_of',
+        related_name='creator_of_%(app_label)s_%(class)s',
         help_text='This is the person who first uploaded the resource',
     )
 
@@ -32,7 +32,7 @@ class ResourcePermissionsMixin(Ownable):
         default=True
     )
     owners = models.ManyToManyField(User,
-        related_name='owns',
+        related_name='owns_%(app_label)s_%(class)s',
         help_text='The person who uploaded the resource'
     )
     frozen = models.BooleanField(
@@ -258,7 +258,7 @@ class AbstractResource(ResourcePermissionsMixin):
     """
     last_changed_by = models.ForeignKey(User, 
         help_text='The person who last changed the resource',
-	related_name='last_changed', 
+	related_name='last_changed_%(app_label)s_%(class)s', 
 	null=True)
     dublin_metadata = generic.GenericRelation(
         'dublincore.QualifiedDublinCoreElement',
