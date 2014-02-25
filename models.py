@@ -24,7 +24,7 @@ def get_user(request):
 
 class ResourcePermissionsMixin(Ownable):
     creator = models.ForeignKey(User,
-        related_name='creator_of',
+        related_name='creator_of_%(app_label)s_%(class)s',
         help_text='This is the person who first uploaded the resource',
     )
 
@@ -33,7 +33,7 @@ class ResourcePermissionsMixin(Ownable):
         default=True
     )
     owners = models.ManyToManyField(User,
-        related_name='owns',
+        related_name='owns_%(app_label)s_%(class)s',
         help_text='The person who uploaded the resource'
     )
     frozen = models.BooleanField(
@@ -131,7 +131,9 @@ class ResourcePermissionsMixin(Ownable):
         if user.is_authenticated():
             if not self.user:
                 ret = user.is_superuser
-            elif user.pk == self.user.pk:
+            elif user.pk == self.creator.pk:
+                ret = True
+            elif user.pk in { o.pk for o in self.owners.all() }:
                 ret = True
             else:
                 users = self.edit_users
@@ -151,13 +153,17 @@ class ResourcePermissionsMixin(Ownable):
 
     def can_view(self, request):
         user = get_user(request)
+        
+        ret = True
 
-        if self.public or not self.user:
-            return True
-        if user.is_authenticated():
-            if not self.user:
-                return user.is_superuser
-            elif user.pk == self.user.pk:
+        if self.public:
+            ret = True
+        elif user.is_authenticated():
+            if self.creator.pk == user.pk:
+                ret = True
+            elif user.is_superuser
+                ret = True
+            elif user.pk in { o.pk for o in self.owners.all() }:
                 return True
             else:
                 users = self.view_users
@@ -259,7 +265,7 @@ class AbstractResource(ResourcePermissionsMixin):
     """
     last_changed_by = models.ForeignKey(User, 
         help_text='The person who last changed the resource',
-	related_name='last_changed', 
+	related_name='last_changed_%(app_label)s_%(class)s', 
 	null=True)
     dublin_metadata = generic.GenericRelation(
         'dublincore.QualifiedDublinCoreElement',
@@ -284,3 +290,5 @@ class GenericResource(Page, RichText, AbstractResource):
 
     class Meta:
         verbose_name = 'Generic Hydroshare Resource'
+
+        

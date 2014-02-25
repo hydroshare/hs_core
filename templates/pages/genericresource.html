@@ -72,11 +72,11 @@
 
 {% keywords_for page as keywords %}
 <ul class='list-group'>
-    {% editable page.keywords %} 
     {% for keyword in keywords %}
     <li class='list-group-item'>{{ keyword }}</li>
+    {% empty %}
+    <li class='list-grouo-item'>No keyword metadata</li>
     {% endfor %}
-    {% endeditable %}
 </ul>
     
     {% include 'pages/includes/page_permissions_editor.html' %}
