@@ -4,6 +4,7 @@ from django.db import models
 from mezzanine.pages.models import Page, RichText
 from ga_resources.models import PagePermissionsMixin
 from mezzanine.core.models import Ownable
+from mezzanine.generic.fields import CommentsField
 # from dublincore.models import QualifiedDublinCoreElement
 
 def get_user(request):
@@ -130,7 +131,9 @@ class ResourcePermissionsMixin(Ownable):
         if user.is_authenticated():
             if not self.user:
                 ret = user.is_superuser
-            elif user.pk == self.user.pk:
+            elif user.pk == self.creator.pk:
+                ret = True
+            elif user.pk in { o.pk for o in self.owners.all() }:
                 ret = True
             else:
                 users = self.edit_users
@@ -150,13 +153,17 @@ class ResourcePermissionsMixin(Ownable):
 
     def can_view(self, request):
         user = get_user(request)
+        
+        ret = True
 
-        if self.public or not self.user:
-            return True
-        if user.is_authenticated():
-            if not self.user:
-                return user.is_superuser
-            elif user.pk == self.user.pk:
+        if self.public:
+            ret = True
+        elif user.is_authenticated():
+            if self.creator.pk == user.pk:
+                ret = True
+            elif user.is_superuser:
+                ret = True
+            elif user.pk in { o.pk for o in self.owners.all() }:
                 return True
             else:
                 users = self.view_users
@@ -264,6 +271,7 @@ class AbstractResource(ResourcePermissionsMixin):
         'dublincore.QualifiedDublinCoreElement',
         help_text='The dublin core metadata of the resource'
     )
+    comments = CommentsField()
 
     class Meta: 
         abstract = True
@@ -282,3 +290,5 @@ class GenericResource(Page, RichText, AbstractResource):
 
     class Meta:
         verbose_name = 'Generic Hydroshare Resource'
+
+        

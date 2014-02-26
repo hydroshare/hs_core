@@ -20,4 +20,3 @@ class GenericResourceResource(ModelResource):
         resource_name = 'resource'
         authorization = Authorization()
 
-
