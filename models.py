@@ -161,7 +161,7 @@ class ResourcePermissionsMixin(Ownable):
         elif user.is_authenticated():
             if self.creator.pk == user.pk:
                 ret = True
-            elif user.is_superuser
+            elif user.is_superuser:
                 ret = True
             elif user.pk in { o.pk for o in self.owners.all() }:
                 return True
