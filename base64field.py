@@ -48,7 +48,6 @@ class Base64FileField(FileField):
  
     def hydrate(self, obj):
         value = super(FileField, self).hydrate(obj)
-        print type(value)
         # Don't try to hydrate if value is a FieldFile, as no file was 
         # uploaded (i.e. during a PUT that doesn't modify the file).
         # Only try to hydrate if value is a dict (i.e. came from a JSON object)
