@@ -5,6 +5,7 @@ import mimetypes
 import os
 from tastypie.fields import FileField
 from django.core.files.uploadedfile import SimpleUploadedFile
+from django.db.models.fields.files import FieldFile
  
 class Base64FileField(FileField):
     """
@@ -47,6 +48,11 @@ class Base64FileField(FileField):
  
     def hydrate(self, obj):
         value = super(FileField, self).hydrate(obj)
-        if value:
-            value = SimpleUploadedFile(value["name"], base64.b64decode(value["file"]), getattr(value, "content_type", "application/octet-stream"))
+        print type(value)
+        # Don't try to hydrate if value is a FieldFile, as no file was 
+        # uploaded (i.e. during a PUT that doesn't modify the file).
+        # Only try to hydrate if value is a dict (i.e. came from a JSON object)
+        if not isinstance(value, FieldFile) and isinstance(value, dict):
+            value = SimpleUploadedFile(value["name"], base64.b64decode(value["file"]), 
+                                       getattr(value, "content_type", "application/octet-stream"))
         return value
