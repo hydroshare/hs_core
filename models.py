@@ -152,8 +152,10 @@ class ResourcePermissionsMixin(Ownable):
 
 
     def can_view(self, request):
+        print "can view called"
         user = get_user(request)
-        
+        print "username: {user}".format(user=user.username)
+        print "is public: {public}".format(public=self.public)
         ret = True
 
         if self.public:
@@ -164,19 +166,20 @@ class ResourcePermissionsMixin(Ownable):
             elif user.is_superuser:
                 ret = True
             elif user.pk in { o.pk for o in self.owners.all() }:
-                return True
+                ret = True
             else:
                 users = self.view_users
                 groups = self.view_groups
 
                 if len(users) > 0 and user.pk in users:
-                    return True
+                    ret = True
                 elif len(groups) > 0:
-                    return user.groups.filter(pk__in=groups).exists()
+                    ret = user.groups.filter(pk__in=groups).exists()
                 else:
-                    return False
+                    ret = False
         else:
-            return False
+            ret = False
+        return ret
 
     def copy_permissions_to_children(self, clear_existing=True, recurse=False):
         # pedantically implemented.  should use set logic to minimize changes, but ptobably not important
