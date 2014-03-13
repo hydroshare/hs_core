@@ -5,6 +5,7 @@ from mezzanine.pages.models import Page, RichText
 from ga_resources.models import PagePermissionsMixin
 from mezzanine.core.models import Ownable
 from mezzanine.generic.fields import CommentsField
+from mezzanine.conf import settings as s
 # from dublincore.models import QualifiedDublinCoreElement
 
 def get_user(request):
@@ -152,10 +153,7 @@ class ResourcePermissionsMixin(Ownable):
 
 
     def can_view(self, request):
-        print "can view called"
         user = get_user(request)
-        print "username: {user}".format(user=user.username)
-        print "is public: {public}".format(public=self.public)
         ret = True
 
         if self.public:
