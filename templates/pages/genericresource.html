@@ -1,15 +1,33 @@
 {% extends "hydroshare/res.html" %}
 {% load geoanalytics_tags pages_tags mezzanine_tags keyword_tags comment_tags %}
 
-{% block resource %} 
-<h4>Download files</h4>
-<div class='row well'>
-{% if page.genericresource.resource_file %}
-    <a class='btn btn-lg btn-primary' href='{{page.genericresource.resource_file.url}}'>{{ page.genericresource.resource_file.name }}</a>
-{% elif page.genericresource.resource_url %}
-    <a class='btn btn-lg btn-primary' href='{{page.genericresource.resource_url}}'>Resource URL links to off-site</a>
-{% endif %}
+{% block resource %}
+<h3>Download files</h3>
+<div class="container">
+    <div class='row well'>
+        <div class="col-md-12">
+        {% if page.genericresource.resource_file %}
+            <a class='btn btn-lg btn-primary' href='{{page.genericresource.resource_file.url}}'>{{ page.genericresource.resource_file.name }}</a>
+        {% elif page.genericresource.resource_url %}
+            <a class='btn btn-lg btn-primary' href='{{page.genericresource.resource_url}}'>Resource URL links to off-site</a>
+        {% endif %}
+        </div>
+    </div>
 </div>
+{% endblock %}
+
+{% block main_data %}
+    <form role="form-horizontal" action="">
+        {% csrf_token %}
+        <div class="form-group">
+            <label for="resource-file">Resource file</label>
+            <input type="file" name="resource_file" id="resource-file"/>
+        </div>
+        <div class="form-group">
+            <label for="resource-url">Resource URL</label>
+            <input type="url" name="resource_url" id="resource-url"/>
+        </div>
+    </form>
 {% endblock %}
 
 

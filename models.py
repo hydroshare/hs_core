@@ -2,6 +2,7 @@ from django.contrib.contenttypes import generic
 from django.contrib.auth.models import User, Group
 from django.db import models
 from mezzanine.pages.models import Page, RichText
+from mezzanine.pages.page_processors import processor_for
 from ga_resources.models import PagePermissionsMixin
 from mezzanine.core.models import Ownable
 from mezzanine.generic.fields import CommentsField
@@ -293,4 +294,9 @@ class GenericResource(Page, RichText, AbstractResource):
     class Meta:
         verbose_name = 'Generic Hydroshare Resource'
 
-        
+@processor_for(GenericResource)
+def resource_processor(request, page):
+    extra = page_permissions_page_processor(request, page)
+    extra['res'] = page.get_content_model()
+    extra['dc'] = { m.term_name : m.content for m in extra['res'].dublin_metadata.all() }
+    return extra
