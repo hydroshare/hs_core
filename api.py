@@ -2,7 +2,7 @@ from django.contrib.auth.models import User
 
 from tastypie.api import Api
 from tastypie import fields
-from tastypie.authentication import BasicAuthentication
+from tastypie.authentication import BasicAuthentication, ApiKeyAuthentication, SessionAuthentication, MultiAuthentication
 from tastypie.authorization import Authorization
 from tastypie.resources import ModelResource
 from tastypie.constants import ALL
@@ -10,6 +10,8 @@ from tastypie.constants import ALL
 from authorization import HydroshareAuthorization
 from models import GenericResource
 from base64field import Base64FileField
+
+v1_api = Api(api_name='v1')
 
 class UserResource(ModelResource):
     class Meta:
@@ -20,9 +22,10 @@ class UserResource(ModelResource):
         filtering = {
             'username': ALL,
         }
-        authentication = BasicAuthentication()
+        authentication = MultiAuthentication(BasicAuthentication(), SessionAuthentication())
         #authorization = HydroshareAuthorization()
         authorization = Authorization()
+v1_api.register(UserResource())
 
 class GenericResourceResource(ModelResource):
     resource_file = Base64FileField('resource_file')
@@ -36,6 +39,7 @@ class GenericResourceResource(ModelResource):
         filtering = {
             'id': 'exact',
         }
-        authentication = BasicAuthentication()
+        authentication = MultiAuthentication(BasicAuthentication(), SessionAuthentication())
         #authorization = HydroshareAuthorization()
         authorization = Authorization()
+v1_api.register(GenericResourceResource())
