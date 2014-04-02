@@ -3,7 +3,7 @@
 {% load geoanalytics_tags pages_tags mezzanine_tags keyword_tags comment_tags %}
 
 {% block title %}{{ block.super }}
-        <small class="text-right">Last modified on {{ page.updated|date:"F j, y" }} by {{ res.creator }}</small>
+        <small class="text-right">Last modified on {{ page.updated|date:"F j, y" }} by {{ res.creator }} </small>
 {% endblock %}
 
 {% block main %}
@@ -39,25 +39,35 @@
                         <div class="list-group" style="max-height:150px; overflow-y:auto">
                             {% for u in res.owners.all %}
                                 <div class="list-group-item"><button class="btn btn-link btn-xs">&times;</button>{{ u.username }}</div>
-                            {% empty %}
-                                <em>No additional editor specified</em>
                             {% endfor %}
+                            {% for u in edit_users %}
+                                <div class="list-group-item"><button class="btn btn-link btn-xs">&times;</button>{{ u.username }}</div>
+                            {% endfor %}
+
+
                             <div class="list-group-item bg-primary">
-                                <input class="form-control" type="text" name="owner-username"
+                                <input class="form-control" type="text" name="edit-user-username"
                                        id="owner-username" placeholder="Add editor by username"/>
                             </div>
                         </div>
+
                         <h4>Viewers</h4>
                         <div class="list-group" style="max-height:150px; overflow-y:auto">
-                            {% for u in res.owners.all %}
-                                <div class="list-group-item"><button class="btn btn-link btn-xs">&times;</button>{{ u.username }}</div>
-                            {% empty %}
-                                <em>No additional viewers specified</em>
-                            {% endfor %}
-                            <div class="list-group-item bg-primary">
-                                <input class="form-control" type="text" name="owner-username"
+                            {% if res.public %}
+                                <div class="list-group-item"><em>Resource is publicly viewable</em></div>
+                            {% else %}
+                                {% for u in res.owners.all %}
+                                    <div class="list-group-item"><button class="btn btn-link btn-xs">&times;</button>{{ u.username }}</div>
+                                {% endfor %}
+                                {% for u in view_users %}
+                                    <div class="list-group-item"><button class="btn btn-link btn-xs">&times;</button>{{ u.username }}</div>
+                                {% endfor %}
+                                <div class="list-group-item bg-primary">
+                                <input class="form-control" type="text" name="view-user-username"
                                        id="owner-username" placeholder="Add viewer by username"/>
-                            </div>
+                                </div>
+                            {% endif %}
+
                         </div>
                 </div>
                 <div class="modal-footer">
@@ -67,6 +77,14 @@
             </div>
         </div>
     </div>
+
+    <p class="text-right">
+        <small class="text-right">
+            Permalink: <a href="http://{{ request.get_host }}/r/{{ res.short_id }}/">
+            http://{{ request.get_host }}/r/{{ res.short_id }}/
+        </a></small>
+    </p>
+
 
     {% block resource %}
     {% endblock %}
@@ -182,7 +200,7 @@
                 </div>
 
                 <div class="col-sm-6 col-md-4">
-                    <h4>Ownership</h4>
+                    <h4>Stewardship</h4>
 
                     <form class="form-horizontal" action=".">
                         <div class="form-group">
@@ -193,18 +211,10 @@
                                        type="text"
                                        name="author"
                                        id="author"
-                                        {% if page.author %}value="{{ page.author.username }}"{% endif %}
+                                        {% if res.creator %}value="{{ res.creator.username }}"{% endif %}
                                         />
                             </div>
-                            <label class="col-sm-3 col-md-2 control-label" for="dc-source">Creator</label>
-                            <div class="col-sm-10">
-                                <input class="form-control"
-                                       placeholder="Data created / collected by"
-                                       type="text"
-                                       name="creator"
-                                       id="creator"
-                                        {% if res.creator %}value="{{ res.creator.username }}"{% endif %}/>
-                            </div>
+
                             <label class="col-sm-3 col-md-2 control-label" for="dc-source">Owner</label>
                             <div class="col-sm-10">
                                 <input class="form-control"
