@@ -1,4 +1,13 @@
 ### resource API
+from django.core.exceptions import ObjectDoesNotExist
+from django.core.files import File
+from django.core.files.uploadedfile import UploadedFile
+from mezzanine.generic.models import Keyword, AssignedKeyword
+from dublincore.models import QualifiedDublinCoreElement
+from hs_core.hydroshare.utils import get_resource_types
+from hs_core.models import ResourceFile
+from . import utils
+
 
 def get_resource(pk):
     """
@@ -36,7 +45,7 @@ def get_resource(pk):
     # 3.F.2. Serialize the resource to disk using TastyPie.
     # 3.F.3. Create a bagit file from the serialized resource.
     # 3.F.4. Return the bagit file
-    raise NotImplemented("This is a release 1 feature.")
+    return utils.get_resource_by_shortkey(pk).bags.first()
 
 
 def get_science_metadata(pk):
@@ -56,7 +65,7 @@ def get_science_metadata(pk):
     Exceptions.NotFound  - The resource identified by pid does not exist
     Exception.ServiceFailure  - The service is unable to process the request
     """
-    raise NotImplemented()
+    return get_system_metadata(pk)
 
 
 def get_system_metadata(pk):
@@ -77,7 +86,7 @@ def get_system_metadata(pk):
         Exceptions.NotFound - The resource identified by pid does not exist
         Exception.ServiceFailure - The service is unable to process the request
     """
-    raise NotImplemented()
+    return utils.get_resource_by_shortkey(pk)
 
 
 def get_resource_map(pk):
@@ -98,7 +107,7 @@ def get_resource_map(pk):
     Exceptions.NotFound - The resource identified by pid does not exist
     Exception.ServiceFailure - The service is unable to process the request
     """
-    raise NotImplemented()
+    return utils.get_resource_by_shortkey(pk)
 
 
 def get_capabilities(pk):
@@ -117,10 +126,10 @@ def get_capabilities(pk):
     Exceptions.NotFound - The resource identified by pid does not exist
     Exception.ServiceFailure - The service is unable to process the request
     """
-    raise NotImplemented()
+    return utils.get_resource_by_shortkey(pk).extra_capabilities()
 
 
-def get_resource_file(pk, file_obj):
+def get_resource_file(pk, filename):
     """
     Called by clients to get an individual file within a HydroShare resource.
 
@@ -139,6 +148,12 @@ def get_resource_file(pk, file_obj):
     Exceptions.NotFound - The resource identified does not exist or the file identified by filename does not exist
     Exception.ServiceFailure - The service is unable to process the request
     """
+    resource = utils.get_resource_by_shortkey(pk)
+    for f in ResourceFile.objects.filter(content_object=resource):
+        if f.resource_file.name == filename:
+            return f.resource_file
+    else:
+        raise ObjectDoesNotExist(filename)
 
 def get_revisions(pk):
     """
@@ -158,7 +173,7 @@ def get_revisions(pk):
     Exception.ServiceFailure - The service is unable to process the request
 
     """
-    raise NotImplemented()
+    return utils.get_resource_by_shortkey(pk).bags.all()
 
 
 def get_related(pk):
@@ -206,7 +221,11 @@ def get_checksum(pk):
     raise NotImplemented()
 
 
-def create_resource(resource_package):
+def create_resource(
+        resource_type, owner, title,
+        edit_users=None, view_users=None, edit_groups=None, view_groups=None,
+        keywords=None, dublin_metadata=None,
+        *files, **kwargs):
     """
     Called by a client to add a new resource to HydroShare. The caller must have authorization to write content to
     HydroShare. The pid for the resource is assigned by HydroShare upon inserting the resource.  The create method
@@ -228,10 +247,70 @@ def create_resource(resource_package):
 
     Note:  The calling user will automatically be set as the owner of the created resource.
     """
-    raise NotImplemented()
+    for tp in get_resource_types():
+        if resource_type == tp.__name__:
+            cls = tp
+            break
+    else:
+        raise NotImplemented("Type {resource_type} does not exist".format(**locals()))
 
+    # create the resource
+    resource = cls.objects.create(
+        author=owner,
+        title=title,
+        **kwargs
+    )
+    for file in files:
+        ResourceFile.objects.create(content_object=resource, resource_file=file)
 
-def update_resource(pk, *args, **kwargs):
+    resource.view_users.add(owner)
+    resource.edit_users.add(owner)
+    resource.owners.add(owner)
+
+    if edit_users:   
+        for user in edit_users:
+            user = utils.user_from_id(user)
+            resource.edit_users.add(user)
+            resource.view_users.add(user)
+    if view_users:
+        for user in view_users:
+            user = utils.user_from_id(user)
+            resource.view_users.add(user)
+    
+    if edit_groups:   
+        for group in edit_groups:
+            group = utils.group_from_id(group)
+            resource.edit_groups.add(group)
+            resource.view_groups.add(group)
+    if view_groups:
+        for group in view_groups:
+            group = utils.group_from_id(group)
+            resource.view_groups.add(group)
+
+    if keywords:
+        ks = [Keyword.objects.get_or_create(k) for k in keywords]
+        ks = zip(*ks)[0]  # ignore whether something was created or not.  zip is its own inverse
+
+        for k in ks:
+            AssignedKeyword.objects.create(content_object=resource, keyword=k)
+
+    if dublin_metadata:
+        for d in dublin_metadata:
+            QualifiedDublinCoreElement.objects.create(
+                term=d['term'],
+                qualifier=d.get('qualifier'),
+                content=d['content'],
+                content_object=resource
+            )
+
+    return resource
+        
+
+def update_resource(
+        pk,
+        edit_users=None, view_users=None, edit_groups=None, view_groups=None,
+        keywords=None, dublin_metadata=None,
+        *files, **kwargs):
     """
     Called by clients to update a resource in HydroShare.
 
@@ -265,10 +344,67 @@ def update_resource(pk, *args, **kwargs):
     systems pick up the changes when filtering on SystmeMetadata.dateSysMetadataModified. A formally published resource
     can only be obsoleted by one newer version. Once a resource is obsoleted, no other resources can obsolete it.
     """
-    raise NotImplemented()
+    resource = utils.get_resource_by_shortkey(pk)
 
+    if files:
+        ResourceFile.objects.filter(content_object=resource).delete()
+        for file in files:
+            ResourceFile.objects.create(
+                content_object=resource,
+                resource_file=File(file) if not isinstance(file, UploadedFile) else file
+            )
 
-def add_resource_file(pk, file_obj):
+    if 'owner' in kwargs:
+        owner = kwargs['owner']
+        resource.view_users.add(owner)
+        resource.edit_users.add(owner)
+        resource.owners.add(owner)
+
+    if edit_users:
+        resource.edit_users.clear()
+        for user in edit_users:
+            user = utils.user_from_id(user)
+            resource.edit_users.add(user)
+            resource.view_users.add(user)
+
+    if view_users:
+        resource.view_users.clear()
+        for user in view_users:
+            user = utils.user_from_id(user)
+            resource.view_users.add(user)
+
+    if edit_groups:
+        resource.edit_groups.clear()
+        for group in edit_groups:
+            group = utils.group_from_id(group)
+            resource.edit_groups.add(group)
+            resource.view_groups.add(group)
+
+    if view_groups:
+        resource.edit_groups.clear()
+        for group in view_groups:
+            group = utils.group_from_id(group)
+            resource.view_groups.add(group)
+
+    if keywords:
+        AssignedKeyword.objects.filter(content_object=resource).delete()
+        ks = [Keyword.objects.get_or_create(k) for k in keywords]
+        ks = zip(*ks)[0]  # ignore whether something was created or not.  zip is its own inverse
+
+        for k in ks:
+            AssignedKeyword.objects.create(content_object=resource, keyword=k)
+
+    if dublin_metadata:
+        QualifiedDublinCoreElement.objects.filter(content_object=resource).delete()
+        for d in dublin_metadata:
+            QualifiedDublinCoreElement.objects.create(
+                term=d['term'],
+                qualifier=d.get('qualifier'),
+                content=d['content'],
+                content_object=resource
+            )
+
+def add_resource_files(pk, *files):
     """
     Called by clients to update a resource in HydroShare by adding a single file.
 
@@ -300,17 +436,22 @@ def add_resource_file(pk, file_obj):
     Once a resource is obsoleted, no other resources can obsolete it.
 
     """
-    raise NotImplemented()
+    resource = utils.get_resource_by_shortkey(pk)
+    for file in files:
+        ResourceFile.objects.create(
+            content_object=resource,
+            resource_file=File(file) if not isinstance(file, UploadedFile) else file
+        )
 
 
-def update_system_metadata(pk, *args, **kwargs):
+def update_system_metadata(pk, **kwargs):
     """
 
     """
-    raise NotImplemented()
+    return update_science_metadata(pk, **kwargs)
 
 
-def update_science_metadata(pk, *args, **kwargs):
+def update_science_metadata(pk, dublin_metadata=None, keywords=None, **kwargs):
     """
     Called by clients to update the science metadata for a resource in HydroShare.
 
@@ -345,8 +486,30 @@ def update_science_metadata(pk, *args, **kwargs):
     Once a resource is obsoleted, no other resources can obsolete it.
 
     """
-    raise NotImplemented()
+    resource = utils.get_resource_by_shortkey(pk)
 
+    if keywords:
+        AssignedKeyword.objects.filter(content_object=resource).delete()
+        ks = [Keyword.objects.get_or_create(k) for k in keywords]
+        ks = zip(*ks)[0]  # ignore whether something was created or not.  zip is its own inverse
+
+        for k in ks:
+            AssignedKeyword.objects.create(content_object=resource, keyword=k)
+
+    if dublin_metadata:
+        QualifiedDublinCoreElement.objects.filter(content_object=resource).delete()
+        for d in dublin_metadata:
+            QualifiedDublinCoreElement.objects.create(
+                term=d['term'],
+                qualifier=d.get('qualifier'),
+                content=d['content'],
+                content_object=resource
+            )
+
+    if kwargs:
+        for field, value in kwargs:
+            setattr(resource, field, value)
+        resource.save()
 
 def delete_resource(pk):
     """
@@ -373,7 +536,8 @@ def delete_resource(pk):
 
     Note:  Only HydroShare administrators will be able to delete formally published resour
     """
-    raise NotImplemented()
+    utils.get_resource_by_shortkey(pk).delete()
+    return pk
 
 
 def delete_resource_file(pk, filename):
@@ -407,7 +571,16 @@ def delete_resource_file(pk, filename):
     SystmeMetadata.dateSysMetadataModified. A formally published resource can only be obsoleted by one newer
     version. Once a resource is obsoleted, no other resources can obsolete it.
     """
-    raise NotImplemented()
+    resource = utils.get_resource_by_shortkey(pk)
+    for f in ResourceFile.objects.filter(content_object=resource):
+        if f.resource_file.name == filename:
+            f.resource_file.delete()
+            f.delete()
+            break
+    else:
+        raise ObjectDoesNotExist(filename)
+
+    return pk
 
 
 def publish_resource(pk):
@@ -431,10 +604,14 @@ def publish_resource(pk):
 
     Note:  This is different than just giving public access to a resource via access control rul
     """
-    raise NotImplemented()
+    resource = utils.get_resource_by_shortkey(pk)
+    resource.published_and_frozen = True
+    resource.frozen = True
+    resource.save()
 
 
-def resolve_doi(pk, doi):
+
+def resolve_doi(doi):
     """
     Takes as input a DOI and returns the internal HydroShare identifier (pid) for a resource. This method will be used
     to get the HydroShare pid for a resource identified by a doi for further operations using the web service API.
@@ -456,4 +633,4 @@ def resolve_doi(pk, doi):
     so that a program can resolve the pid for a DOI.
 
     """
-    raise NotImplemented()
+    return utils.get_resource_by_doi(doi).short_id

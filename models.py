@@ -2,6 +2,7 @@ from django.contrib.contenttypes import generic
 from django.contrib.auth.models import User, Group
 from django.contrib.contenttypes.models import ContentType
 from django.db import models
+from django.utils.timezone import now
 from mezzanine.pages.models import Page, RichText
 from mezzanine.pages.page_processors import processor_for
 from uuid import uuid4
@@ -54,7 +55,7 @@ class ResourcePermissionsMixin(Ownable):
     )
     do_not_distribute = models.BooleanField(
         help_text='If this is true, the resource owner has to designate viewers',
-        default=True
+        default=False
     )
     discoverable = models.BooleanField(
         help_text='If this is true, it will turn up in searches.',
@@ -183,8 +184,16 @@ class AbstractResource(ResourcePermissionsMixin):
         help_text='The dublin core metadata of the resource'
     )
     files = generic.GenericRelation('hs_core.ResourceFile', help_text='The files associated with this resource')
+    bags = generic.GenericRelation('hs_core.Bags', help_text='The bagits created from versions of this resource')
     short_id = models.CharField(max_length=32, default=lambda: uuid4().hex, db_index=True)
     comments = CommentsField()
+
+    def extra_capabilites(self):
+        """This is not terribly well defined yet, but should return at the least a JSON serializable object of URL
+        endpoints where extra self-describing services exist and can be queried by the user in the form of
+        { "name" : "endpoint" }
+        """
+        return None
 
     class Meta: 
         abstract = True
@@ -198,6 +207,18 @@ class ResourceFile(models.Model):
 
     content_object = generic.GenericForeignKey('content_type', 'object_id')
     resource_file = models.FileField(upload_to=get_path)
+
+class Bags(models.Model):
+    object_id = models.PositiveIntegerField()
+    content_type = models.ForeignKey(ContentType)
+
+    content_object = generic.GenericForeignKey('content_type', 'object_id')
+    path = models.FilePathField(allow_folders=True, allow_files=True)
+    timestamp = models.DateTimeField(default=now, db_index=True)
+
+    class Meta:
+        ordering = ['-timestamp']
+
 
 class GenericResource(Page, RichText, AbstractResource):
     class Meta:

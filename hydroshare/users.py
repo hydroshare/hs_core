@@ -1,6 +1,10 @@
-from .utils import get_resource_by_shortkey
-
+from django.core.exceptions import MultipleObjectsReturned
+from django.contrib.auth.models import User, Group
+from hs_core.models import GroupOwnership
+from .utils import get_resource_by_shortkey, user_from_id, group_from_id, get_resource_types
+import json
 ### User management and authorization API
+
 
 def set_resource_owner(pk, user):
     """
@@ -30,17 +34,20 @@ def set_resource_owner(pk, user):
     return pk
 
 
-DO_NOT_DISTRIBUTE='donotdistribute'
-EDIT='edit'
-VIEW='view'
-PUBLIC='public'
+DO_NOT_DISTRIBUTE = 'donotdistribute'
+EDIT = 'edit'
+VIEW = 'view'
+PUBLIC = 'public'
+
+
 def set_access_rules(pk, user=None, group=None, access=None, allow=False):
     """
     Set the access permissions for an object identified by pid. Triggers a change in the system metadata. Successful
     completion of this operation in indicated by a HTTP response of 200. Unsuccessful completion of this operation must
     be indicated by returning an appropriate exception such as NotAuthorized.
 
-    REST URL:  PUT /resource/accessRules/{pid}/?principaltype=({userID}|{groupID})&principleID={id}&access=(edit|view|donotdistribute)&allow=(true|false)
+    REST URL:  PUT /resource/accessRules/{pid}/?principaltype=({userID}|{groupID})&principleID={id}&access=
+        (edit|view|donotdistribute)&allow=(true|false)
 
     Parameters:
     pid - Unique HydroShare identifier for the resource to be modified
@@ -76,6 +83,8 @@ def set_access_rules(pk, user=None, group=None, access=None, allow=False):
     access = access.lower()
     if isinstance(pk, basestring):
         res = get_resource_by_shortkey(pk, or_404=False)
+    else:
+        res = pk  # user passed in the resource instance instead of hte primary key
 
     if access == DO_NOT_DISTRIBUTE:
         res.do_not_distribute = allow
@@ -119,10 +128,9 @@ def set_access_rules(pk, user=None, group=None, access=None, allow=False):
             raise TypeError('Tried to view access permissions without specifying a user or group')
     else:
         raise TypeError('access was none of {donotdistribute, public, edit, view}  ')
-        
 
 
-def create_account(*args, **kwargs):
+def create_account(email, username=None, first_name=None, last_name=None, superuser=None, groups=None):
     """
     Create a new user within the HydroShare system.
 
@@ -145,13 +153,38 @@ def create_account(*args, **kwargs):
 
     """
 
-    from hs_core.api import UserResource
-    ur = UserResource()
+    from django.contrib.auth.models import User, Group
+    from django.contrib.sites.models import Site
 
-    raise NotImplemented()
+    username = username if username else email
+
+    groups = groups if groups else []
+    groups = zip(
+        *(Group.objects.get_or_create(name=g)
+          if isinstance(g, basestring) else g
+          for g in groups)
+    )[0]
+
+    if superuser:
+        u = User.objects.create_superuser(username, email, first_name=first_name, last_name=last_name, password=None)
+    else:
+        u = User.objects.create_user(username, email, first_name=first_name, last_name=last_name, password=None)
+
+    u.email_user(
+        'Please verify your new Hydroshare account.',
+        """
+This is an automated email from Hydroshare.org. If you requested a Hydroshare account, please
+go to http://{domain}/verify/{uid}/ and verify your account.
+""".format(
+        domain=Site.objects.get_current().domain,
+        uid=u.pk
+    ))
+
+    u.groups = groups
+    return u.username
 
 
-def update_account(user, *args, **kwargs):
+def update_account(user, **kwargs):
     """
     Update an existing user within the HydroShare system. The user calling this method must have write access to the
     account details.
@@ -175,12 +208,43 @@ def update_account(user, *args, **kwargs):
     Note:  This would be done via a JSON object (user) that is in the PUT request.
 
     """
-    raise NotImplemented()
+    from django.contrib.auth.models import Group
+
+    groups = kwargs.get('groups', [])
+    groups = zip(
+        *(Group.objects.get_or_create(name=g)
+          if isinstance(g, basestring) else g
+          for g in groups)
+    )[0]
+    
+    if 'password' in kwargs:
+        user.set_password(kwargs['password'])
+    
+    blacklist = {'username', 'password', 'groups'}  # handled separately or cannot change
+    for k in blacklist.intersection(kwargs.keys()):
+        del kwargs[k]
+
+    try:
+        profile = user.get_profile()        
+        profile_update = dict(*filter(lambda x, _: hasattr(profile, x), kwargs.items()))
+        for k, v in profile_update.items():
+            setattr(profile, k, v)
+        profile.save()
+    except AttributeError:
+        pass  # ignore deprecated user profile module when we upgrade to 1.7
+    
+    user_update = dict(*filter(lambda x, _: hasattr(user, x), kwargs.items()))
+    for k, v in user_update.items():
+        setattr(user, k, v)
+    user.save()
+
+    user.groups = groups
+    return user.username
 
 
 def get_user_info(user):
     """
-    Get the information about a user identified by userID. This would be their profile information, groups they belong to, etc.
+    Get the information about a user identified by userID. This would be their profile information, groups they belong.
 
     REST URL:  GET /accounts/{userID}
 
@@ -195,7 +259,11 @@ def get_user_info(user):
     Exceptions.NotFound - The user identified by userID does not exist
     Exception.ServiceFailure - The service is unable to process the request
     """
-    raise NotImplemented()
+    from hs_core.api import UserResource
+
+    ur = UserResource()
+    ur_bundle = ur.build_bundle(obj=user)
+    return json.loads(ur.serialize(None, ur.full_dehydrate(ur_bundle), 'application/json'))
 
 
 def list_users(query=None, status=None, start=None, count=None):
@@ -207,7 +275,8 @@ def list_users(query=None, status=None, start=None, count=None):
     Parameters:
     query - a string specifying the query to perform
     status - (optional) parameter to filter users returned based on status
-    start=0 -  (optional) the zero-based index of the first value, relative to the first record of the resultset that matches the parameters
+    start=0 -  (optional) the zero-based index of the first value, relative to the first record of the resultset that
+        matches the parameters
     count=100 - (optional) the maximum number of results that should be returned in the response
 
     Returns: An object containing a list of userIDs that match the query. If none match, an empty list is returned.
@@ -219,10 +288,22 @@ def list_users(query=None, status=None, start=None, count=None):
     Exception.ServiceFailure - The service is unable to process the request
 
     """
-    raise NotImplemented()
+    query = json.loads(query) if isinstance(query, basestring) else query
+
+    qs = User.objects.filter(**query)
+    qs = qs.filter(active=True) if status == 'active' else qs
+    qs = qs.filter(is_staff=True) if status == 'staff' else qs
+    if start and count:
+        qs = qs[start:start+count]
+    elif start:
+        qs = qs[start:]
+    elif count:
+        qs = qs[:count]
+
+    return qs
 
 
-def list_groups(query=None, status=None, start=None, count=None):
+def list_groups(query=None, start=None, count=None):
     """
     List the groups that match search criteria.
 
@@ -231,7 +312,8 @@ def list_groups(query=None, status=None, start=None, count=None):
     Parameters:
     query - a string specifying the query to perform
     status - (optional) parameter to filter groups returned based on status
-    start=0 - (optional) the zero-based index of the first value, relative to the first record of the resultset that matches the parameters
+    start=0 - (optional) the zero-based index of the first value, relative to the first record of the resultset that
+        matches the parameters
     count=100 - (optional) the maximum number of results that should be returned in the response
 
     Returns: An object containing a list of groupIDs that match the query. If none match, an empty list is returned.
@@ -242,13 +324,26 @@ def list_groups(query=None, status=None, start=None, count=None):
     Exceptions.NotAuthorized - The user is not authorized
     Exception.ServiceFailure - The service is unable to process the request
 
+    implementation notes: status parameter is unused.  unsure of group status.
+
     """
-    raise NotImplemented()
+    query = json.loads(query) if isinstance(query, basestring) else query
+    qs = Group.objects.filter(**query)
+    if start and count:
+        qs = qs[start:start+count]
+    elif start:
+        qs = qs[start:]
+    elif count:
+        qs = qs[:count]
+
+    return qs
 
 
-def create_group(name):
+def create_group(name, members=None, owners=None):
     """
-    Create a group within HydroShare. Groups are lists of users that allow all members of the group to be referenced by listing solely the name of the group. Group names must be unique within HydroShare. Groups can only be modified by users listed as group owners.
+    Create a group within HydroShare. Groups are lists of users that allow all members of the group to be referenced by
+    listing solely the name of the group. Group names must be unique within HydroShare. Groups can only be modified by
+    users listed as group owners.
 
     REST URL:  POST /groups
 
@@ -263,21 +358,43 @@ def create_group(name):
     Exceptions.GroupNameNotUnique - The name of the group already exists in HydroShare
     Exception.ServiceFailure - The service is unable to process the request
 
-    Note:  This would be done via a JSON object (group) that is in the POST request. May want to add an email verification step to avoid automated creation of fake groups. The creating user would automatically be set as the owner of the created group.
+    Note:  This would be done via a JSON object (group) that is in the POST request. May want to add an email
+    verification step to avoid automated creation of fake groups. The creating user would automatically be set as the
+    owner of the created group.
     """
+    g = Group.objects.create(name)
 
-    raise NotImplemented()
+    if owners:
+        owners = [user_from_id(owner) for owner in owners]
+
+        GroupOwnership.objects.bulk_create([
+            GroupOwnership(group=g, owner=owner) for owner in owners
+        ])
+
+    if members:
+        members = [user_from_id(member) for member in members]
+
+        for member in members:
+            try:
+                member.groups.add(g)
+            except MultipleObjectsReturned:
+                pass
+
+    return g
 
 
-def update_group(name, *members):
+def update_group(group, members=None, owners=None):
     """
-    Modify details of group identified by groupID or add or remove members to/from the group. Group members can be modified only by an owner of the group, otherwise a NotAuthorized exception is thrown. Group members are provided as a list of users that replace the group membership.
+    Modify details of group identified by groupID or add or remove members to/from the group. Group members can be
+    modified only by an owner of the group, otherwise a NotAuthorized exception is thrown. Group members are provided as
+    a list of users that replace the group membership.
 
     REST URL:  PUT /groups/{groupID}
 
     Parameters:
     groupID - groupID of the existing group to be modified
-    group - An object containing the modified attributes of the group to be modified and the modified list of userIDs in the group membership
+    group - An object containing the modified attributes of the group to be modified and the modified list of userIDs in
+    the group membership
 
     Returns: The groupID of the group that was modified
 
@@ -292,12 +409,33 @@ def update_group(name, *members):
     Note:  This would be done via a JSON object (group) that is in the PUT request.
     """
 
+    if owners:
+        GroupOwnership.objects.filter(group=group).delete()
+        owners = [user_from_id(owner) for owner in owners]
+
+        GroupOwnership.objects.bulk_create([
+            GroupOwnership(group=group, owner=owner) for owner in owners
+        ])
+
+    if members:
+        for u in User.objects.filter(groups=group):
+            u.groups.remove(group)
+
+        members = [user_from_id(member) for member in members]
+
+        for member in members:
+            try:
+                member.groups.add(group)
+            except MultipleObjectsReturned:
+                pass
+
     raise NotImplemented()
 
 
 def list_group_members(name):
     """
-    Get the information about a group identified by groupID. For a group this would be its description and membership list.
+    Get the information about a group identified by groupID. For a group this would be its description and membership
+    list.
 
     REST URL:  GET /group/{groupID}
 
@@ -312,12 +450,13 @@ def list_group_members(name):
     Exceptions.NotFound - The group identified by groupID does not exist
     Exception.ServiceFailure - The service is unable to process the request
     """
-    raise NotImplemented()
+    return User.objects.filter(groups=group_from_id(name))
 
 
 def set_group_owner(group, user):
     """
-    Adds ownership of the group identified by groupID to the user specified by userID. This can only be done by a group owner or HydroShare administrator.
+    Adds ownership of the group identified by groupID to the user specified by userID. This can only be done by a group
+    owner or HydroShare administrator.
 
     REST URL:  PUT /groups/{groupID}/owner/?user={userID}
 
@@ -334,11 +473,15 @@ def set_group_owner(group, user):
     Exceptions.NotFound - The group identified by groupID does not exist
     Exceptions.NotFound - The user identified by userID does not exist
     Exception.ServiceFailure - The service is unable to process the request
- """
+    """
+    if not GroupOwnership.objects.filter(group=group, user=user).exists():
+        GroupOwnership.objects.create(group=group, user=user)
+
 
 def delete_group_owner(group, user):
     """
-    Removes a group owner identified by a userID from a group specified by groupID. This can only be done by a group owner or HydroShare administrator.
+    Removes a group owner identified by a userID from a group specified by groupID. This can only be done by a group
+    owner or HydroShare administrator.
 
     REST URL:  DELETE /groups/{groupID}/owner/?user={userID}
 
@@ -359,10 +502,15 @@ def delete_group_owner(group, user):
 
     Note:  A group must have at least one owner.
     """
+    GroupOwnership.objects.filter(group=group, user=user).delete()
 
 
-def get_resource_list(query_type=None, group_id=None, user_id=None, from_date=None, to_date=None, start=None,
-                      count=None):
+def get_resource_list(
+        group=None, user=None,
+        from_date=None, to_date=None,
+        start=None, count=None,
+        keywords=None, dc=None,
+        full_text_search=None):
     """
     Return a list of pids for Resources that have been shared with a group identified by groupID.
     REST URL:  GET /resourceList?groups__contains={groupID}
@@ -371,7 +519,8 @@ def get_resource_list(query_type=None, group_id=None, user_id=None, from_date=No
     queryType - string specifying the type of query being performed
     groupID - groupID of the group whose list of shared resources is to be returned
 
-    Returns: A list of pids for resources that have been shared with the group identified by groupID.  If no resources have been shared with a group, an empty list is returned.
+    Returns: A list of pids for resources that have been shared with the group identified by groupID.  If no resources
+    have been shared with a group, an empty list is returned.
 
     Return Type: resourceList
 
@@ -380,8 +529,67 @@ def get_resource_list(query_type=None, group_id=None, user_id=None, from_date=No
     Exceptions.NotFound - The group identified by groupID does not exist
     Exception.ServiceFailure - The service is unable to process the request
 
-    Note:  See http://django-tastypie.readthedocs.org/en/latest/resources.html#basic-filtering for implementation details and example. We may want to modify this method to return more than just the pids for resources so that some metadata for the list of resources returned could be displayed without having to call HydroShare.getScienceMetadata() and HydroShare.GetSystemMetadata() for every resource in the returned list.
+    Note:  See http://django-tastypie.readthedocs.org/en/latest/resources.html#basic-filtering for implementation
+    details and example. We may want to modify this method to return more than just the pids for resources so that some
+    metadata for the list of resources returned could be displayed without having to call
+    HydroShare.getScienceMetadata() and HydroShare.GetSystemMetadata() for every resource in the returned list.
 
+    Implementation notes:  For efficiency's sake, this returns a dictionary of query sets with one
+    query set per defined resource type.  At a high level someone could run through this whole list,
+    collate the results, and send it back as a single list, but on the server side we don't do this
+    because it gets too expensive quickly.
+
+    parameters:
+        group = Group or name
+        user = User or name
+        from_date = datetime object
+        to_date = datetime object
+        start = int
+        count = int
+        keywords = list of keywords
+        dc = list of lookups which are dicts following the following specifications:
+            { term : dublin core term short name
+              qualifier : dublin core term qualifier
+              content : content of the dublin core term ("content" can be suffixed by django-style field lookups like
+                content__startswith, etc
+            }
     """
-    raise NotImplemented()
+    from django.db.models import Q
 
+    if not any((group, user, from_date, to_date, start, count, keywords, dc, full_text_search)):
+        raise NotImplemented("Returning the full resource list is not supported.  at least limit by count")
+
+    resource_types = get_resource_types()
+    queries = dict(*zip(resource_types, []))
+
+    for t, q in queries.items():
+        if group:
+            group = group_from_id(group)
+            queries[t].append(Q(edit_groups=group) | Q(view_groups=group))
+
+        if user:
+            user = user_from_id(user)
+            queries[t].append(Q(edit_users=user) | Q(view_users=user) | Q(owners=user))
+
+        if from_date and to_date:
+            queries[t].append(Q(updated__range=(from_date, to_date)))
+        elif from_date:
+            queries[t].append(Q(updated__ge=from_date))
+        elif to_date:
+            queries[t].append(Q(updated__le=to_date))
+
+        if keywords:
+            queries[t].append(Q(keywords=keywords))
+
+        if dc:
+            for lookup in dc:
+                for term, value in lookup.items():
+                    term = 'dublin_metadata__' + term
+                    queries[t].append(Q(**{term: value}))
+
+        queries[t] = t.objects.filter(queries[t])
+
+        if full_text_search:
+            queries[t] = t.objects.search(full_text_search)
+
+    return queries

@@ -13,7 +13,7 @@ from tastypie.constants import ALL
 
 from hs_core.authorization import HydroshareAuthorization
 from dublincore.models import QualifiedDublinCoreElement
-from hs_core.models import GenericResource
+from hs_core.models import GenericResource, ResourceFile
 
 v1_api = Api(api_name='v1')
 
@@ -99,7 +99,7 @@ class ResourceFileResource(ModelResource):
 
     class Meta:
         always_return_data = True
-        queryset = QualifiedDublinCoreElement.objects.all()
+        queryset = ResourceFile.objects.all()
         resource_name = 'resource_file'
         filtering = {
             'id': 'exact',
