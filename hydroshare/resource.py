@@ -607,6 +607,8 @@ def publish_resource(pk):
     resource = utils.get_resource_by_shortkey(pk)
     resource.published_and_frozen = True
     resource.frozen = True
+    resource.edit_users = []
+    resource.edit_groups = []
     resource.save()
 
 

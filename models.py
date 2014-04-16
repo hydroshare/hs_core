@@ -177,8 +177,9 @@ class AbstractResource(ResourcePermissionsMixin):
     """
     last_changed_by = models.ForeignKey(User, 
         help_text='The person who last changed the resource',
-	related_name='last_changed_%(app_label)s_%(class)s', 
-	null=True)
+	    related_name='last_changed_%(app_label)s_%(class)s',
+	    null=True
+    )
     dublin_metadata = generic.GenericRelation(
         'dublincore.QualifiedDublinCoreElement',
         help_text='The dublin core metadata of the resource'
@@ -186,6 +187,8 @@ class AbstractResource(ResourcePermissionsMixin):
     files = generic.GenericRelation('hs_core.ResourceFile', help_text='The files associated with this resource')
     bags = generic.GenericRelation('hs_core.Bags', help_text='The bagits created from versions of this resource')
     short_id = models.CharField(max_length=32, default=lambda: uuid4().hex, db_index=True)
+    doi = models.CharField(max_length=1024, blank=True, null=True, db_index=True,
+                           help_text='Permanent identifier. Never changes once it\'s been set.')
     comments = CommentsField()
 
     def extra_capabilites(self):
@@ -213,7 +216,7 @@ class Bags(models.Model):
     content_type = models.ForeignKey(ContentType)
 
     content_object = generic.GenericForeignKey('content_type', 'object_id')
-    path = models.FilePathField(allow_folders=True, allow_files=True)
+    bag = models.FileField(upload_to='bags', storage=getattr(s, 'BAGIT_STORAGE', None), null=True) # actually never null
     timestamp = models.DateTimeField(default=now, db_index=True)
 
     class Meta:

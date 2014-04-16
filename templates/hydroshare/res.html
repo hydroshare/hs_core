@@ -80,7 +80,7 @@
 
     <div class="row">
         <div class="col-md-6 col-xs-12">
-            <a class="btn btn-default btn-block" href="/hsapi/resource/{{ res.short_id }}">Download resource package</a>
+            <a class="btn btn-default btn-block" href="{{ res.bags.all.first.bag.url }}">Download resource package</a>
         </div>
         <div class="col-md-6 col-xs-12 text-right">
                 Permalink: <a class='btn btn-link' href="http://{{ request.get_host }}/r/{{ res.short_id }}/">
