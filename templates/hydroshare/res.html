@@ -78,19 +78,25 @@
         </div>
     </div>
 
-    <p class="text-right">
-        <small class="text-right">
-            Permalink: <a href="http://{{ request.get_host }}/r/{{ res.short_id }}/">
-            http://{{ request.get_host }}/r/{{ res.short_id }}/
-        </a></small>
-    </p>
-
+    <div class="row">
+        <div class="col-md-6 col-xs-12">
+            <a class="btn btn-default btn-block" href="{{ res.bags.all.first.bag.url }}">Download resource package</a>
+        </div>
+        <div class="col-md-6 col-xs-12 text-right">
+                Permalink: <a class='btn btn-link' href="http://{{ request.get_host }}/r/{{ res.short_id }}/">
+                Right-click to copy
+            </a>
+        </div>
+    </div>
 
     {% block resource %}
     {% endblock %}
 
-
-    {{ res.content|richtext_filters|safe }}
+    <div class="row">
+        <div class="col-md-12" style="padding-top: 1em;">
+            {{ res.content|richtext_filters|safe }}
+        </div>
+    </div>
 
     <div class="row">
         <div class="col-md-12">
@@ -104,9 +110,44 @@
         </ul>
     
         <div class="tab-content">
-            <div class="tab-pane active" id="main-data">{% block main_data %}
-                No main data tab defined.  Extend <code>main_data</code> in your generic resource
-            {% endblock %}</div>
+            <div class="tab-pane active" id="main-data">
+                <div class="col-sm-6">
+                <div class="panel panel-primary">
+                    <div class="panel-heading">Resource files</div>
+
+                    <div class="list-group">
+                    {% for f in res.files.all %}
+                        <div class="list-group-item"><a href="{{ f.resource_file.url }}">{{ f.resource_file.name|slice:"33:"|truncatechars:64 }}</a><a
+                                class="btn btn-sm btn-link pull-right" href="#"><i class="fa fa-trash-o"></i></a></div>
+                    {% empty %}
+                        <div class="list-group-item"><em>No files</em></div>
+                    {% endfor %}
+                        <div class="list-group-item">
+                            <div class="row">
+                            <form class="form-inline" role="form" method="POST" enctype="multipart/form-data" action="/hsapi/_internal/add_file_to_resource/{{ res.short_id }}/">
+                                {% csrf_token %}
+                                <div class="form-group col-sm-8">
+                                <input class='form-control' type="file" name="file" id="file-to-add"/>
+                                </div>
+                                <div class="form-group col-sm-4">
+                                <input type="submit" class="btn btn-primary btn-block" value="Add file">
+                                </div>
+                            </form>
+                                </div>
+                        </div>
+                    </div>
+                </div>
+                </div>
+                <div class="col-sm-6">
+                    <div class="panel panel-primary">
+                        <div class="panel-heading">Type-specific data</div>
+                        <div class="panel-body">
+                            {% block main_data %}
+                                <p>No main data tab defined.  Extend <code>main_data</code> in your generic resource</p>
+                            {% endblock %}</div>
+                        </div>
+                    </div>
+                </div>
             <div class="tab-pane" id="generic-metadata">{% block generic_metadata %}
                 <form class="form-horizontal" role="form" action="/edit-dublincore/{{ page.slug }}/">
                     <div class="form-group"><label class="col-sm-2 control-label" for="dc-title">Title</label>

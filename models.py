@@ -1,22 +1,31 @@
 from django.contrib.contenttypes import generic
 from django.contrib.auth.models import User, Group
+from django.contrib.contenttypes.models import ContentType
 from django.db import models
+from django.utils.timezone import now
 from mezzanine.pages.models import Page, RichText
 from mezzanine.pages.page_processors import processor_for
 from uuid import uuid4
-from ga_resources.models import PagePermissionsMixin
 from mezzanine.core.models import Ownable
 from mezzanine.generic.fields import CommentsField
 from mezzanine.conf import settings as s
+import os.path
 # from dublincore.models import QualifiedDublinCoreElement
 
+class GroupOwnership(models.Model):
+    group = models.ForeignKey(Group)
+    owner = models.ForeignKey(User)
+
+
 def get_user(request):
-    from tastypie.models import ApiKey
     """authorize user based on API key if it was passed, otherwise just use the request's user.
 
     :param request:
     :return: django.contrib.auth.User
     """
+
+    from tastypie.models import ApiKey
+
     if 'api_key' in request.REQUEST:
         api_key = ApiKey.objects.get(key=request.REQUEST['api_key'])
         return api_key.user
@@ -46,7 +55,7 @@ class ResourcePermissionsMixin(Ownable):
     )
     do_not_distribute = models.BooleanField(
         help_text='If this is true, the resource owner has to designate viewers',
-        default=True
+        default=False
     )
     discoverable = models.BooleanField(
         help_text='If this is true, it will turn up in searches.',
@@ -76,14 +85,6 @@ class ResourcePermissionsMixin(Ownable):
          related_name='group_editable_%(app_label)s_%(class)s',
          help_text='This is the set of Hydroshare Groups who can edit the resource',
          null=True, blank=True)
-
-    def storage_key(self, kfor):
-        return "{label}.{model}.{key}.{kfor}".format(
-            label=self._meta.app_label,
-            model=self._meta.module_name,
-            key=self.pk,
-            kfor=kfor
-        )
 
     class Meta:
         abstract = True
@@ -176,32 +177,53 @@ class AbstractResource(ResourcePermissionsMixin):
     """
     last_changed_by = models.ForeignKey(User, 
         help_text='The person who last changed the resource',
-	related_name='last_changed_%(app_label)s_%(class)s', 
-	null=True)
+	    related_name='last_changed_%(app_label)s_%(class)s',
+	    null=True
+    )
     dublin_metadata = generic.GenericRelation(
         'dublincore.QualifiedDublinCoreElement',
         help_text='The dublin core metadata of the resource'
     )
+    files = generic.GenericRelation('hs_core.ResourceFile', help_text='The files associated with this resource')
+    bags = generic.GenericRelation('hs_core.Bags', help_text='The bagits created from versions of this resource')
     short_id = models.CharField(max_length=32, default=lambda: uuid4().hex, db_index=True)
+    doi = models.CharField(max_length=1024, blank=True, null=True, db_index=True,
+                           help_text='Permanent identifier. Never changes once it\'s been set.')
     comments = CommentsField()
+
+    def extra_capabilites(self):
+        """This is not terribly well defined yet, but should return at the least a JSON serializable object of URL
+        endpoints where extra self-describing services exist and can be queried by the user in the form of
+        { "name" : "endpoint" }
+        """
+        return None
 
     class Meta: 
         abstract = True
 
+def get_path(instance, filename):
+    return os.path.join(instance.content_object.short_id, filename)
 
- 
+class ResourceFile(models.Model):
+    object_id = models.PositiveIntegerField()
+    content_type = models.ForeignKey(ContentType)
+
+    content_object = generic.GenericForeignKey('content_type', 'object_id')
+    resource_file = models.FileField(upload_to=get_path)
+
+class Bags(models.Model):
+    object_id = models.PositiveIntegerField()
+    content_type = models.ForeignKey(ContentType)
+
+    content_object = generic.GenericForeignKey('content_type', 'object_id')
+    bag = models.FileField(upload_to='bags', storage=getattr(s, 'BAGIT_STORAGE', None), null=True) # actually never null
+    timestamp = models.DateTimeField(default=now, db_index=True)
+
+    class Meta:
+        ordering = ['-timestamp']
+
+
 class GenericResource(Page, RichText, AbstractResource):
-    resource_file = models.FileField(
-        help_text='This should be a Bagit file containing the resource itself',
-        upload_to='generic_resources',
-        blank=True, 
-        null=True
-    )
-    resource_url = models.URLField(
-        blank=True, 
-        null=True
-    )
-
     class Meta:
         verbose_name = 'Generic Hydroshare Resource'
 

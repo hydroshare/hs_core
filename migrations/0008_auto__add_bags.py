@@ -8,15 +8,20 @@ from django.db import models
 class Migration(SchemaMigration):
 
     def forwards(self, orm):
-        # Adding field 'GenericResource.short_id'
-        db.add_column(u'hs_core_genericresource', 'short_id',
-                      self.gf('django.db.models.fields.CharField')(default='78e4ad2bae254be1ad45b3d92dcb3783', max_length=32, db_index=True),
-                      keep_default=False)
+        # Adding model 'Bags'
+        db.create_table(u'hs_core_bags', (
+            (u'id', self.gf('django.db.models.fields.AutoField')(primary_key=True)),
+            ('object_id', self.gf('django.db.models.fields.PositiveIntegerField')()),
+            ('content_type', self.gf('django.db.models.fields.related.ForeignKey')(to=orm['contenttypes.ContentType'])),
+            ('path', self.gf('django.db.models.fields.FilePathField')(max_length=100)),
+            ('timestamp', self.gf('django.db.models.fields.DateTimeField')(default=datetime.datetime.now, db_index=True)),
+        ))
+        db.send_create_signal(u'hs_core', ['Bags'])
 
 
     def backwards(self, orm):
-        # Deleting field 'GenericResource.short_id'
-        db.delete_column(u'hs_core_genericresource', 'short_id')
+        # Deleting model 'Bags'
+        db.delete_table(u'hs_core_bags')
 
 
     models = {
@@ -56,13 +61,21 @@ class Migration(SchemaMigration):
             'model': ('django.db.models.fields.CharField', [], {'max_length': '100'}),
             'name': ('django.db.models.fields.CharField', [], {'max_length': '100'})
         },
+        u'hs_core.bags': {
+            'Meta': {'ordering': "['-timestamp']", 'object_name': 'Bags'},
+            'content_type': ('django.db.models.fields.related.ForeignKey', [], {'to': u"orm['contenttypes.ContentType']"}),
+            u'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
+            'object_id': ('django.db.models.fields.PositiveIntegerField', [], {}),
+            'path': ('django.db.models.fields.FilePathField', [], {'max_length': '100'}),
+            'timestamp': ('django.db.models.fields.DateTimeField', [], {'default': 'datetime.datetime.now', 'db_index': 'True'})
+        },
         u'hs_core.genericresource': {
             'Meta': {'ordering': "(u'_order',)", 'object_name': 'GenericResource', '_ormbases': [u'pages.Page']},
             u'comments_count': ('django.db.models.fields.IntegerField', [], {'default': '0'}),
             'content': ('mezzanine.core.fields.RichTextField', [], {}),
             'creator': ('django.db.models.fields.related.ForeignKey', [], {'related_name': "u'creator_of_hs_core_genericresource'", 'to': u"orm['auth.User']"}),
             'discoverable': ('django.db.models.fields.BooleanField', [], {'default': 'True'}),
-            'do_not_distribute': ('django.db.models.fields.BooleanField', [], {'default': 'True'}),
+            'do_not_distribute': ('django.db.models.fields.BooleanField', [], {'default': 'False'}),
             'edit_groups': ('django.db.models.fields.related.ManyToManyField', [], {'blank': 'True', 'related_name': "u'group_editable_hs_core_genericresource'", 'null': 'True', 'symmetrical': 'False', 'to': u"orm['auth.User']"}),
             'edit_users': ('django.db.models.fields.related.ManyToManyField', [], {'blank': 'True', 'related_name': "u'user_editable_hs_core_genericresource'", 'null': 'True', 'symmetrical': 'False', 'to': u"orm['auth.User']"}),
             'frozen': ('django.db.models.fields.BooleanField', [], {'default': 'False'}),
@@ -71,12 +84,23 @@ class Migration(SchemaMigration):
             u'page_ptr': ('django.db.models.fields.related.OneToOneField', [], {'to': u"orm['pages.Page']", 'unique': 'True', 'primary_key': 'True'}),
             'public': ('django.db.models.fields.BooleanField', [], {'default': 'True'}),
             'published_and_frozen': ('django.db.models.fields.BooleanField', [], {'default': 'False'}),
-            'resource_file': ('django.db.models.fields.files.FileField', [], {'max_length': '100', 'null': 'True', 'blank': 'True'}),
-            'resource_url': ('django.db.models.fields.URLField', [], {'max_length': '200', 'null': 'True', 'blank': 'True'}),
-            'short_id': ('django.db.models.fields.CharField', [], {'default': "'d7f7004bb0d54e31855943f5d29903ec'", 'max_length': '32', 'db_index': 'True'}),
+            'short_id': ('django.db.models.fields.CharField', [], {'default': "'e0ba6b2fa2134382a8fd65d9a1cf72b0'", 'max_length': '32', 'db_index': 'True'}),
             'user': ('django.db.models.fields.related.ForeignKey', [], {'related_name': "u'genericresources'", 'to': u"orm['auth.User']"}),
             'view_groups': ('django.db.models.fields.related.ManyToManyField', [], {'blank': 'True', 'related_name': "u'group_viewable_hs_core_genericresource'", 'null': 'True', 'symmetrical': 'False', 'to': u"orm['auth.Group']"}),
-            'viewa_users': ('django.db.models.fields.related.ManyToManyField', [], {'blank': 'True', 'related_name': "u'user_viewable_hs_core_genericresource'", 'null': 'True', 'symmetrical': 'False', 'to': u"orm['auth.User']"})
+            'view_users': ('django.db.models.fields.related.ManyToManyField', [], {'blank': 'True', 'related_name': "u'user_viewable_hs_core_genericresource'", 'null': 'True', 'symmetrical': 'False', 'to': u"orm['auth.User']"})
+        },
+        u'hs_core.groupownership': {
+            'Meta': {'object_name': 'GroupOwnership'},
+            'group': ('django.db.models.fields.related.ForeignKey', [], {'to': u"orm['auth.Group']"}),
+            u'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
+            'owner': ('django.db.models.fields.related.ForeignKey', [], {'to': u"orm['auth.User']"})
+        },
+        u'hs_core.resourcefile': {
+            'Meta': {'object_name': 'ResourceFile'},
+            'content_type': ('django.db.models.fields.related.ForeignKey', [], {'to': u"orm['contenttypes.ContentType']"}),
+            u'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
+            'object_id': ('django.db.models.fields.PositiveIntegerField', [], {}),
+            'resource_file': ('django.db.models.fields.files.FileField', [], {'max_length': '100'})
         },
         u'pages.page': {
             'Meta': {'ordering': "(u'titles',)", 'object_name': 'Page'},

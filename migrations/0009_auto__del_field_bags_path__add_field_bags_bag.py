@@ -8,31 +8,27 @@ from django.db import models
 class Migration(SchemaMigration):
 
     def forwards(self, orm):
-        # Removing M2M table for field viewa_users on 'GenericResource'
-        db.delete_table(db.shorten_name(u'hs_core_genericresource_viewa_users'))
+        # Deleting field 'Bags.path'
+        db.delete_column(u'hs_core_bags', 'path')
 
-        # Adding M2M table for field view_users on 'GenericResource'
-        m2m_table_name = db.shorten_name(u'hs_core_genericresource_view_users')
-        db.create_table(m2m_table_name, (
-            ('id', models.AutoField(verbose_name='ID', primary_key=True, auto_created=True)),
-            ('genericresource', models.ForeignKey(orm[u'hs_core.genericresource'], null=False)),
-            ('user', models.ForeignKey(orm[u'auth.user'], null=False))
-        ))
-        db.create_unique(m2m_table_name, ['genericresource_id', 'user_id'])
+        # Adding field 'Bags.bag'
+        db.add_column(u'hs_core_bags', 'bag',
+                      self.gf('django.db.models.fields.files.FileField')(max_length=100, null=True),
+                      keep_default=False)
 
 
     def backwards(self, orm):
-        # Adding M2M table for field viewa_users on 'GenericResource'
-        m2m_table_name = db.shorten_name(u'hs_core_genericresource_viewa_users')
-        db.create_table(m2m_table_name, (
-            ('id', models.AutoField(verbose_name='ID', primary_key=True, auto_created=True)),
-            ('genericresource', models.ForeignKey(orm[u'hs_core.genericresource'], null=False)),
-            ('user', models.ForeignKey(orm[u'auth.user'], null=False))
-        ))
-        db.create_unique(m2m_table_name, ['genericresource_id', 'user_id'])
 
-        # Removing M2M table for field view_users on 'GenericResource'
-        db.delete_table(db.shorten_name(u'hs_core_genericresource_view_users'))
+        # User chose to not deal with backwards NULL issues for 'Bags.path'
+        raise RuntimeError("Cannot reverse this migration. 'Bags.path' and its values cannot be restored.")
+        
+        # The following code is provided here to aid in writing a correct migration        # Adding field 'Bags.path'
+        db.add_column(u'hs_core_bags', 'path',
+                      self.gf('django.db.models.fields.FilePathField')(max_length=100),
+                      keep_default=False)
+
+        # Deleting field 'Bags.bag'
+        db.delete_column(u'hs_core_bags', 'bag')
 
 
     models = {
@@ -72,13 +68,21 @@ class Migration(SchemaMigration):
             'model': ('django.db.models.fields.CharField', [], {'max_length': '100'}),
             'name': ('django.db.models.fields.CharField', [], {'max_length': '100'})
         },
+        u'hs_core.bags': {
+            'Meta': {'ordering': "['-timestamp']", 'object_name': 'Bags'},
+            'bag': ('django.db.models.fields.files.FileField', [], {'max_length': '100', 'null': 'True'}),
+            'content_type': ('django.db.models.fields.related.ForeignKey', [], {'to': u"orm['contenttypes.ContentType']"}),
+            u'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
+            'object_id': ('django.db.models.fields.PositiveIntegerField', [], {}),
+            'timestamp': ('django.db.models.fields.DateTimeField', [], {'default': 'datetime.datetime.now', 'db_index': 'True'})
+        },
         u'hs_core.genericresource': {
             'Meta': {'ordering': "(u'_order',)", 'object_name': 'GenericResource', '_ormbases': [u'pages.Page']},
             u'comments_count': ('django.db.models.fields.IntegerField', [], {'default': '0'}),
             'content': ('mezzanine.core.fields.RichTextField', [], {}),
             'creator': ('django.db.models.fields.related.ForeignKey', [], {'related_name': "u'creator_of_hs_core_genericresource'", 'to': u"orm['auth.User']"}),
             'discoverable': ('django.db.models.fields.BooleanField', [], {'default': 'True'}),
-            'do_not_distribute': ('django.db.models.fields.BooleanField', [], {'default': 'True'}),
+            'do_not_distribute': ('django.db.models.fields.BooleanField', [], {'default': 'False'}),
             'edit_groups': ('django.db.models.fields.related.ManyToManyField', [], {'blank': 'True', 'related_name': "u'group_editable_hs_core_genericresource'", 'null': 'True', 'symmetrical': 'False', 'to': u"orm['auth.User']"}),
             'edit_users': ('django.db.models.fields.related.ManyToManyField', [], {'blank': 'True', 'related_name': "u'user_editable_hs_core_genericresource'", 'null': 'True', 'symmetrical': 'False', 'to': u"orm['auth.User']"}),
             'frozen': ('django.db.models.fields.BooleanField', [], {'default': 'False'}),
@@ -87,12 +91,23 @@ class Migration(SchemaMigration):
             u'page_ptr': ('django.db.models.fields.related.OneToOneField', [], {'to': u"orm['pages.Page']", 'unique': 'True', 'primary_key': 'True'}),
             'public': ('django.db.models.fields.BooleanField', [], {'default': 'True'}),
             'published_and_frozen': ('django.db.models.fields.BooleanField', [], {'default': 'False'}),
-            'resource_file': ('django.db.models.fields.files.FileField', [], {'max_length': '100', 'null': 'True', 'blank': 'True'}),
-            'resource_url': ('django.db.models.fields.URLField', [], {'max_length': '200', 'null': 'True', 'blank': 'True'}),
-            'short_id': ('django.db.models.fields.CharField', [], {'default': "'ebda266dd7e744d58f1a88a7fee85170'", 'max_length': '32', 'db_index': 'True'}),
+            'short_id': ('django.db.models.fields.CharField', [], {'default': "'942d4a474df448a8a1a13da1a9785085'", 'max_length': '32', 'db_index': 'True'}),
             'user': ('django.db.models.fields.related.ForeignKey', [], {'related_name': "u'genericresources'", 'to': u"orm['auth.User']"}),
             'view_groups': ('django.db.models.fields.related.ManyToManyField', [], {'blank': 'True', 'related_name': "u'group_viewable_hs_core_genericresource'", 'null': 'True', 'symmetrical': 'False', 'to': u"orm['auth.Group']"}),
             'view_users': ('django.db.models.fields.related.ManyToManyField', [], {'blank': 'True', 'related_name': "u'user_viewable_hs_core_genericresource'", 'null': 'True', 'symmetrical': 'False', 'to': u"orm['auth.User']"})
+        },
+        u'hs_core.groupownership': {
+            'Meta': {'object_name': 'GroupOwnership'},
+            'group': ('django.db.models.fields.related.ForeignKey', [], {'to': u"orm['auth.Group']"}),
+            u'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
+            'owner': ('django.db.models.fields.related.ForeignKey', [], {'to': u"orm['auth.User']"})
+        },
+        u'hs_core.resourcefile': {
+            'Meta': {'object_name': 'ResourceFile'},
+            'content_type': ('django.db.models.fields.related.ForeignKey', [], {'to': u"orm['contenttypes.ContentType']"}),
+            u'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
+            'object_id': ('django.db.models.fields.PositiveIntegerField', [], {}),
+            'resource_file': ('django.db.models.fields.files.FileField', [], {'max_length': '100'})
         },
         u'pages.page': {
             'Meta': {'ordering': "(u'titles',)", 'object_name': 'Page'},
