@@ -1,9 +1,11 @@
 from __future__ import absolute_import
 
 from django.core.exceptions import PermissionDenied
+from django.core import exceptions
 from hs_core import hydroshare
 from ga_resources.utils import get_user
-from hs_core.hydroshare.utils import get_resource_by_shortkey
+import json
+
 
 def authorize(request, res_id, edit=False, view=False, full=False, superuser=False, raises_exception=True):
     """
@@ -17,8 +19,19 @@ def authorize(request, res_id, edit=False, view=False, full=False, superuser=Fal
     has_view = res.view_users.filter(pk=user.pk).exists()
     has_full = res.owners.filter(pk=user.pk).exists()
 
-    authorized = (edit and has_edit) or (view and has_view) or (full and has_full) or (superuser and user.is_superuser())
+    authorized = (edit and has_edit) or \
+                 (view and (has_view or res.public)) or \
+                 (full and has_full) or \
+                 (superuser and user.is_superuser())
+
     if raises_exception and not authorized:
         raise PermissionDenied()
     else:
         return res, authorized, user
+
+
+def validate_json(js):
+    try:
+        json.loads(js)
+    except Exception:
+        raise exceptions.ValidationError('Invalid JSON')

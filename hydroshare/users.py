@@ -2,9 +2,8 @@ from django.core.exceptions import MultipleObjectsReturned
 from django.contrib.auth.models import User, Group
 from hs_core.models import GroupOwnership
 from .utils import get_resource_by_shortkey, user_from_id, group_from_id, get_resource_types
+from django.core import exceptions
 import json
-### User management and authorization API
-
 
 def set_resource_owner(pk, user):
     """
@@ -159,29 +158,32 @@ def create_account(email, username=None, first_name=None, last_name=None, superu
     username = username if username else email
 
     groups = groups if groups else []
-    groups = zip(
-        *(Group.objects.get_or_create(name=g)
-          if isinstance(g, basestring) else g
-          for g in groups)
-    )[0]
+
+    for i, g in enumerate(groups):
+        groups[i] = Group.objects.get_or_create(name=g)[0] if isinstance(g, basestring) else g
 
     if superuser:
         u = User.objects.create_superuser(username, email, first_name=first_name, last_name=last_name, password=None)
     else:
         u = User.objects.create_user(username, email, first_name=first_name, last_name=last_name, password=None)
 
-    u.email_user(
-        'Please verify your new Hydroshare account.',
-        """
+    u.groups = groups
+
+    try:
+        u.email_user(
+            'Please verify your new Hydroshare account.',
+            """
 This is an automated email from Hydroshare.org. If you requested a Hydroshare account, please
 go to http://{domain}/verify/{uid}/ and verify your account.
 """.format(
-        domain=Site.objects.get_current().domain,
-        uid=u.pk
-    ))
+            domain=Site.objects.get_current().domain,
+            uid=u.pk
+        ))
+    except:
+        pass # FIXME should log this instead of ignoring it.
 
     u.groups = groups
-    return u.username
+    return u
 
 
 def update_account(user, **kwargs):
@@ -230,8 +232,8 @@ def update_account(user, **kwargs):
         for k, v in profile_update.items():
             setattr(profile, k, v)
         profile.save()
-    except AttributeError:
-        pass  # ignore deprecated user profile module when we upgrade to 1.7
+    except AttributeError as e:
+        raise exceptions.ValidationError(e.message)  # ignore deprecated user profile module when we upgrade to 1.7
     
     user_update = dict(*filter(lambda x, _: hasattr(user, x), kwargs.items()))
     for k, v in user_update.items():
@@ -362,7 +364,8 @@ def create_group(name, members=None, owners=None):
     verification step to avoid automated creation of fake groups. The creating user would automatically be set as the
     owner of the created group.
     """
-    g = Group.objects.create(name)
+    g = Group.objects.create(name=name)
+
 
     if owners:
         owners = [user_from_id(owner) for owner in owners]

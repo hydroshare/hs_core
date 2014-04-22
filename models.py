@@ -227,6 +227,18 @@ class GenericResource(Page, RichText, AbstractResource):
     class Meta:
         verbose_name = 'Generic Hydroshare Resource'
 
+    def can_add(self, request):
+        return AbstractResource.can_add(self, request)
+
+    def can_change(self, request):
+        return AbstractResource.can_change(self, request)
+
+    def can_delete(self, request):
+        return AbstractResource.can_delete(self, request)
+
+    def can_view(self, request):
+        return AbstractResource.can_view(self, request)
+
 def resource_processor(request, page):
     extra = page_permissions_page_processor(request, page)
     extra['res'] = page.get_content_model()

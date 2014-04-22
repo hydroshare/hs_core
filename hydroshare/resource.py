@@ -126,7 +126,8 @@ def get_capabilities(pk):
     Exceptions.NotFound - The resource identified by pid does not exist
     Exception.ServiceFailure - The service is unable to process the request
     """
-    return utils.get_resource_by_shortkey(pk).extra_capabilities()
+    res = utils.get_resource_by_shortkey(pk)
+    return getattr(res, 'extra_capabilities', lambda: None)()
 
 
 def get_resource_file(pk, filename):
@@ -152,6 +153,36 @@ def get_resource_file(pk, filename):
     for f in ResourceFile.objects.filter(content_object=resource):
         if f.resource_file.name == filename:
             return f.resource_file
+    else:
+        raise ObjectDoesNotExist(filename)
+
+
+def update_resource_file(pk, filename, f):
+    """
+    Called by clients to update an individual file within a HydroShare resource.
+
+    REST URL:  PUT /resource/{pid}/files/{filename}
+
+    Parameters:
+    pid - Unique HydroShare identifier for the resource from which the file will be extracted.
+    filename - The data bytes of the file that will be extracted from the resource identified by pid
+    file - the data bytes of the file to update
+
+    Returns: The bytes of the file extracted from the resource
+
+    Return Type:    pid
+
+    Raises:
+    Exceptions.NotAuthorized - The user is not authorized
+    Exceptions.NotFound - The resource identified does not exist or the file identified by filename does not exist
+    Exception.ServiceFailure - The service is unable to process the request
+    """
+    resource = utils.get_resource_by_shortkey(pk)
+    for rf in ResourceFile.objects.filter(content_object=resource):
+        if rf.resource_file.name == filename:
+            rf.resource_file = File(f) if not isinstance(f, UploadedFile) else f
+            rf.save()
+        return rf
     else:
         raise ObjectDoesNotExist(filename)
 
@@ -256,6 +287,7 @@ def create_resource(
 
     # create the resource
     resource = cls.objects.create(
+        user=owner,
         author=owner,
         title=title,
         **kwargs
@@ -404,6 +436,8 @@ def update_resource(
                 content_object=resource
             )
 
+    return resource
+
 def add_resource_files(pk, *files):
     """
     Called by clients to update a resource in HydroShare by adding a single file.
@@ -437,12 +471,13 @@ def add_resource_files(pk, *files):
 
     """
     resource = utils.get_resource_by_shortkey(pk)
+    ret = []
     for file in files:
-        ResourceFile.objects.create(
+        ret.append(ResourceFile.objects.create(
             content_object=resource,
             resource_file=File(file) if not isinstance(file, UploadedFile) else file
-        )
-
+        ))
+    return ret
 
 def update_system_metadata(pk, **kwargs):
     """
@@ -580,7 +615,7 @@ def delete_resource_file(pk, filename):
     else:
         raise ObjectDoesNotExist(filename)
 
-    return pk
+    return filename
 
 
 def publish_resource(pk):

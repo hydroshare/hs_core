@@ -1,13 +1,13 @@
+from __future__ import absolute_import
+
 from django.db.models import get_model, get_models
 from django.http import Http404
 from django.shortcuts import get_object_or_404
-import os
-import shutil
-from hs_core.models import AbstractResource, Bags
+from hs_core.models import AbstractResource
 from django.core.exceptions import ObjectDoesNotExist
 from django.contrib.auth.models import User, Group
-import arrow
-import bagit
+from . import hs_bagit
+import importlib
 
 cached_resource_types = None
 
@@ -21,9 +21,9 @@ def get_resource_types():
 def get_resource_instance(app, model_name, pk, or_404=True):
     model = get_model(app, model_name)
     if or_404:
-        get_object_or_404(model, pk=pk)
+        return get_object_or_404(model, pk=pk)
     else:
-        model.objects.get(pk=pk)
+        return model.objects.get(pk=pk)
 
 
 def get_resource_by_shortkey(shortkey, or_404=True):
@@ -62,7 +62,7 @@ def user_from_id(user):
         except ObjectDoesNotExist:
             try:
                 tgt = User.objects.get(pk=int(user))
-            except TypeError:
+            except ValueError:
                 raise Http404('User not found')
             except ObjectDoesNotExist:
                 raise Http404('User not found')
@@ -84,3 +84,33 @@ def group_from_id(grp):
             raise Http404('Group not found')
     return tgt
 
+
+def serialize_science_metadata(res):
+    serializer = get_serializer(res)
+    bundle = serializer.build_bundle(obj=res)
+    return serializer.serialize(None, serializer.full_dehydrate(bundle), 'application/json')
+
+
+def serialize_system_metadata(res):
+    serializer = get_serializer(res)
+    bundle = serializer.build_bundle(obj=res)
+    return serializer.serialize(None, serializer.full_dehydrate(bundle), 'application/json')
+
+
+def serialize_resource_map(res):
+    serializer = get_serializer(res)
+    bundle = serializer.build_bundle(obj=res)
+    return serializer.serialize(None, serializer.full_dehydrate(bundle), 'application/json')
+
+
+def get_serializer(resource):
+    tastypie_module = resource._meta.app_label + '.api'        # the module name should follow this convention
+    tastypie_name = resource._meta.object_name + 'Resource'    # the classname of the Resource seralizer
+    tastypie_api = importlib.import_module(tastypie_module)    # import the module
+    return getattr(tastypie_api, tastypie_name)()        # make an instance of the tastypie resource
+
+
+def resource_modified(resource, by_user=None):
+    resource.last_changed_by = by_user
+    resource.save()
+    hs_bagit.create_bag(resource)
