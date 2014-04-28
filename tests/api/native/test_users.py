@@ -1,6 +1,6 @@
 from django.contrib.auth.models import User, Group
 from django.db import IntegrityError
-from unittest import TestCase
+from django.test import TestCase
 from hs_core import hydroshare
 from hs_core.models import GroupOwnership, GenericResource
 
@@ -10,9 +10,7 @@ class TestUsersAPI(TestCase):
         pass
 
     def tearDown(self):
-        User.objects.all().delete()
-        Group.objects.all().delete()
-        GenericResource.objects.all().delete()
+        pass
 
     def test_create_group(self):
         user1 = hydroshare.create_account(
@@ -73,6 +71,10 @@ class TestUsersAPI(TestCase):
             msg='user2 listed in the group ownership list'
         )
 
+        user1.delete()
+        user2.delete()
+        a_group.delete()
+
     def test_create_account(self):
         a_group = hydroshare.create_group('A Group')
 
@@ -128,3 +130,9 @@ class TestUsersAPI(TestCase):
             [a for a in hydroshare.list_group_members(a_group)],
             msg='user not listed in the group membership list'
         )
+
+        user_without_username.delete()
+        fully_specified_user.delete()
+        a_group.delete()
+
+
