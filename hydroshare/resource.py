@@ -4,6 +4,7 @@ from django.core.files import File
 from django.core.files.uploadedfile import UploadedFile
 from mezzanine.generic.models import Keyword, AssignedKeyword
 from dublincore.models import QualifiedDublinCoreElement
+from hs_core.hydroshare import hs_bagit
 from hs_core.hydroshare.utils import get_resource_types
 from hs_core.models import ResourceFile
 from . import utils
@@ -277,6 +278,30 @@ def create_resource(
     Exception.ServiceFailure - The service is unable to process the request
 
     Note:  The calling user will automatically be set as the owner of the created resource.
+
+    Implementation notes:
+
+    1. pid is called short_id.  This is because pid is a UNIX term for Process ID and could be confusing.
+
+    2. return type is an instance of a subclass of hs_core.models.AbstractResource.  This is for efficiency in the
+       native API.  The native API should return actual instance rather than IDs wherever possible to avoid repeated
+       lookups in the database when they are unnecessary.
+
+    3. resource_type is a string: see parameter list
+
+    :param resource_type: string. the classname of the resource type, such as GenericResource
+    :param owner: email address, username, or User instance. The owner of the resource
+    :param title: string. the title of the resource
+    :param edit_users: list of email addresses, usernames, or User instances who will be given edit permissions
+    :param view_users: list of email addresses, usernames, or User instances who will be given view permissions
+    :param edit_groups: list of group names or Group instances who will be given edit permissions
+    :param view_groups: list of group names or Group instances who will be given view permissions
+    :param keywords: string list. list of keywords to add to the reosurce
+    :param dublin_metadata: list of dicts containing keys { 'term', 'qualifier', 'content' } respecting dublin core std.
+    :param files: list of Django File or UploadedFile objects to be attached to the resource
+    :param kwargs: extra arguments to fill in required values in AbstractResource subclasses
+
+    :return: a new resource which is an instance of resource_type.
     """
     for tp in get_resource_types():
         if resource_type == tp.__name__:
@@ -288,7 +313,7 @@ def create_resource(
     # create the resource
     resource = cls.objects.create(
         user=owner,
-        author=owner,
+        creator=owner,
         title=title,
         **kwargs
     )
@@ -335,6 +360,7 @@ def create_resource(
                 content_object=resource
             )
 
+    hs_bagit.create_bag(resource)
     return resource
         
 
