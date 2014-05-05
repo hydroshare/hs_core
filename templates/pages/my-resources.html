@@ -44,7 +44,7 @@
                     <input type="text" class="form-control input-block" placeholder="Search keywords" value="jefferson"/>
                 </div>
                 <div class="col-md-2">
-                    <button class="btn btn-danger btn-block">Clear Filter</button>
+                    <button class="btn btn-danger btn-block"><i class="fa fa-trash-o"></i> Clear Filter</button>
                 </div>
             </form>
         </div>
@@ -88,7 +88,7 @@
                     <input type="text" class="form-control input-block" placeholder="Search keywords"/>
                 </div>
                 <div class="col-md-2">
-                    <button class="btn btn-primary btn-block">Add Filter</button>
+                    <button class="btn btn-primary btn-block"><i class="fa fa-plus"></i> Add Filter</button>
                 </div>
             </form>
         </div>
@@ -100,26 +100,24 @@
             <div class="col-lg-2" id="folders">
                 <ul class="nav nav-stacked nav-pills">
                     <li><a href="#">Created by me</a></li>
+                    <li><a href="#">Starred <i class="fa fa-star"></i></a></li>
                     <li><a href="#">Editable by me</a></li>
                     <li><a href="#">Viewable by me</a></li>
-                    <li><a href="#">Public</a></li>
                     <li><a href="#">Published</a></li>
                     <li><a href="#">Recent</a></li>
                 </ul>
 
             </div>
             <div class="col-lg-10" id="items">
-               <div class="btn-group btn-group-justified">
-                    <a class="btn btn-success">Create</a>
-                    <a class="btn btn-danger">Delete selected</a>
-                    <a class="btn btn-primary">Share selected</a>
-                    <a class="btn btn-primary">Export selected</a>
-                </div>
+                <a class="btn btn-success"><i class="fa fa-plus"></i> Create new</a>
+                <a class="btn btn-danger pull-right"><i class="fa fa-trash-o"></i> Delete selected</a>
+
 
                 <table class="table table-striped table-hover" id="item-selectors">
                     <tr>
                         <th><input type="checkbox" name="select-all" id="select-all"/></th>
-                        <th>Title</th>
+                        <th>Title <i class="fa fa-sort-desc"></i></th>
+                        <th><i class="text-warning fa fa-star"></i></th>
                         <th>Type</th>
                         <th>Creator</th>
                         <th>Last modified</th>
@@ -128,6 +126,7 @@
                     <tr>
                         <td><input type="checkbox" name="select-item" id="select-item1"/></td>
                         <td><a href="/resource">Generic Resource 1</a></td>
+                        <th><i class="text-warning fa fa-star"></i></th>
                         <td>Generic Resource</td>
                         <td><a href="/users/jeffheard">Jefferson Heard</a></td>
                         <td>2014/04/28 00:00:12</td>
@@ -135,6 +134,7 @@
                     <tr>
                         <td><input type="checkbox" name="select-item" id="select-item1"/></td>
                         <td><a href="/resource">Generic Resource again</a></td>
+                        <th><i class="text-muted fa fa-star-o"></i></th>
                         <td>Generic Resource</td>
                         <td><a href="/users/jeffheard">Jefferson Heard</a></td>
                         <td>2014/04/28 00:00:12</td>
@@ -142,21 +142,28 @@
                     <tr>
                         <td><input type="checkbox" name="select-item" id="select-item1"/></td>
                         <td><a href="/resource">More generic resources</a></td>
+                        <th><i class="text-muted fa fa-star-o"></i></th>
                         <td>Generic Resource</td>
                         <td><a href="/users/jeffheard">Jefferson Heard</a></td>
                         <td>2014/04/28 00:00:12</td>
                     </tr>
                     <tr>
                         <td><input type="checkbox" name="select-item" id="select-item1"/></td>
-                        <td><a href="/resource">This might be another generic reosurce</a></td>
+                        <td><a href="/resource">This might be another generic resource</a></td>
+                        <th><i class="text-muted fa fa-star-o"></i></th>
                         <td>Generic Resource</td>
                         <td><a href="/users/jeffheard">Jefferson Heard</a></td>
                         <td>2014/04/28 00:00:12</td>
                     </tr>
                 </table>
 
-                <div>
+                <div class="btn-toolbar">
+                    <a class="btn btn-link" href=""><i class="fa fa-fast-backward"></i></a>
+                    <a class="btn btn-link" href=""><i class="fa fa-backward"></i></a>
                     Results 1-4 of 4
+                    <a class="btn btn-link" href=""><i class="fa fa-forward"></i></a>
+                    <a class="btn btn-link" href=""><i class="fa fa-fast-forward"></i></a>
+
                 </div>
             </div>
         </div>
