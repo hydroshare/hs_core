@@ -14,7 +14,7 @@ class TestGetResourceByShortkeyAPI(TestCase):
         pass
 
 
-    def test_set_resource_owner(self):
+    def test_get_resource_by_shortkey(self):
         # create a user to be used for creating the resource
         user_creator = hydroshare.create_account(
             'creator@usu.edu',
@@ -34,7 +34,7 @@ class TestGetResourceByShortkeyAPI(TestCase):
             doi='doi1000100010001'
         )
 
-        # do the test
+        # do the test of the api
         self.assertEqual(
             resource,
             hydroshare.get_resource_by_shortkey(resource.short_id)
