@@ -53,22 +53,16 @@ class TestSetResourceOwnerAPI(TestCase):
             doi='doi1000100010001'
         )
 
-        # set the resource owner
+        # set the resource owner - this is the api we are testing
         hydroshare.set_resource_owner(resource.short_id, user_owner)
 
         # test that the user we set as the owner of the resource is one of the resource owners
-        self.assertIn(
-            user_owner,
-            [usr for usr in resource.owners.all()],
-            msg='user_owner not one of the owners of this resource'
-        )
+        self.assertTrue(resource.owners.filter(pk=user_owner.pk).exists(),
+                        msg='user_owner not one of the owners of this resource')
 
-        # test that the user not set as the resource owner is not one of the resource owners
-        self.assertNotIn(
-            user_non_owner,
-            [usr for usr in resource.owners.all()],
-            msg='user_non_owner is one of the owners of this resource'
-        )
+
+        self.assertFalse(resource.owners.filter(pk=user_non_owner.pk).exists(),
+                        msg='user_non_owner is one of the owners of this resource')
 
         # test that there is only one resource owner at this point
         self.assertEqual(
