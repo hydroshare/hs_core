@@ -43,7 +43,7 @@ class TestResourceModifiedAPI(TestCase):
         # get the number of bags currently exists for the resource
         resource_bag_count_old = resource.bags.all().count()
 
-        # set the resource last changed by a different user
+        # set the resource last changed by a different user - this is the api call we are testing
         hydroshare.utils.resource_modified(resource, resource_changed_by)
 
         # get the number of bags the resource have now
