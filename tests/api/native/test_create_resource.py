@@ -15,8 +15,8 @@ class TestCreateResource(TestCase):
         # create a user
         self.user = users.create_account(
             'test_user@email.com',
-            username='testuser',
-            first_name='some_first_namne',
+            username='mytestuser',
+            first_name='some_first_name',
             last_name='some_last_name',
             superuser=False,
             groups=[])
@@ -35,7 +35,7 @@ class TestCreateResource(TestCase):
         self.group.delete()
         #self.res.delete()
 
-    def test_create_resource(self):
+    def test_delete_resource(self):
 
 
         new_res = resource.create_resource(
@@ -59,7 +59,7 @@ class TestCreateResource(TestCase):
         self.assertTrue(res.creator_id == self.userid)
         self.assertTrue(res.short_id is not None, 'Short ID has not been created!')
         self.assertTrue(res.short_url is not None, 'Short URL has not been created!')
-        self.assertTrue(res.bagit is not None, 'Bagithas not been created!')
+        self.assertTrue(res.bagit is not None, 'Bagit has not been created!')
 
 
 
