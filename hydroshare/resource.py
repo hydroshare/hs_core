@@ -8,6 +8,7 @@ from hs_core.hydroshare import hs_bagit
 from hs_core.hydroshare.utils import get_resource_types
 from hs_core.models import ResourceFile
 from . import utils
+import os
 
 
 def get_resource(pk):
@@ -151,8 +152,8 @@ def get_resource_file(pk, filename):
     Exception.ServiceFailure - The service is unable to process the request
     """
     resource = utils.get_resource_by_shortkey(pk)
-    for f in ResourceFile.objects.filter(content_object=resource):
-        if f.resource_file.name == filename:
+    for f in ResourceFile.objects.filter(object_id=resource.id):
+        if os.path.basename(f.resource_file.name) == filename:
             return f.resource_file
     else:
         raise ObjectDoesNotExist(filename)
@@ -179,11 +180,11 @@ def update_resource_file(pk, filename, f):
     Exception.ServiceFailure - The service is unable to process the request
     """
     resource = utils.get_resource_by_shortkey(pk)
-    for rf in ResourceFile.objects.filter(content_object=resource):
-        if rf.resource_file.name == filename:
+    for rf in ResourceFile.objects.filter(object_id=resource.id):
+        if os.path.basename(rf.resource_file.name) == filename:
             rf.resource_file = File(f) if not isinstance(f, UploadedFile) else f
             rf.save()
-        return rf
+            return rf
     else:
         raise ObjectDoesNotExist(filename)
 
@@ -633,8 +634,8 @@ def delete_resource_file(pk, filename):
     version. Once a resource is obsoleted, no other resources can obsolete it.
     """
     resource = utils.get_resource_by_shortkey(pk)
-    for f in ResourceFile.objects.filter(content_object=resource):
-        if f.resource_file.name == filename:
+    for f in ResourceFile.objects.filter(object_id=resource.id):
+        if os.path.basename(f.resource_file.name) == filename:
             f.resource_file.delete()
             f.delete()
             break
