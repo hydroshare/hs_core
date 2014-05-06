@@ -32,5 +32,6 @@ urlpatterns = patterns('',
     # internal API
 
     url(r'^_internal/add_file_to_resource/(?P<shortkey>[A-z0-9]+)/$', views.add_file_to_resource),
+    url(r'^_internal/verify_captcha/$', views.verify_captcha),
 )
 
