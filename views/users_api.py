@@ -15,6 +15,7 @@ from hs_core.models import GroupOwnership
 from .utils import authorize, validate_json
 from django.views.generic import View
 from django.core import exceptions
+from django.conf import settings
 
 
 class SetAccessRules(View):
@@ -201,13 +202,31 @@ class CreateOrListAccounts(View):
     Raises:
     Exceptions.NotAuthorized - The user is not authorized
     Exception.ServiceFailure - The service is unable to process the request
+
+    ### Implementation Notes
+
+    param names are:
+        - username
+        - first_name
+        - last_name
+        - email
+        - superuser
+        - password
+        - groups
+
+    Expected POST content is a form response, not a JSON object.  We allow passwords to be set, but accounts must be
+    verified before they are considered active.  If username is not specified, it defaults to email address. To create
+    an active user and bypass verification, the creator must him or herself be authorized as a superuser. All other
+    users must be verified before they are able to login.
     """
 
     class CreateAccountForm(forms.Form):
         username = forms.CharField(max_length=255, min_length=1)
         first_name = forms.CharField(max_length=255, min_length=1, required=False)
         last_name = forms.CharField(max_length=255, min_length=1, required=False)
+        email = forms.CharField(max_length=255, min_length=1)
         superuser = forms.BooleanField(required=False)
+        password = forms.CharField(required=False)
         groups = forms.ModelMultipleChoiceField(Group.objects.all(), required=False)
 
     class ListUsersForm(forms.Form):
@@ -227,14 +246,19 @@ class CreateOrListAccounts(View):
         return self.list_users()
 
     def post(self, _):
-        return self.put()
+        return self.put(_)
 
     def put(self, _):
         return self.create_account()
 
     def create_account(self):
         if not get_user(self.request).is_superuser:
-            raise exceptions.PermissionDenied("user must be superuser to create an account")
+            if settings.DEBUG or self.request.META.get('HTTP_REFERER', '').contains("hydroshare.org"): # fixme insecure vs spoofed header
+                active=False
+            else:
+                raise exceptions.PermissionDenied("user must be superuser to create an account")
+        else:
+            active=True
 
         params = CreateOrListAccounts.CreateAccountForm(self.request.REQUEST)
         if params.is_valid():
@@ -245,7 +269,9 @@ class CreateOrListAccounts(View):
                 first_name=r['first_name'],
                 last_name=r['last_name'],
                 superuser=r['superuser'],
-                groups=r['groups']
+                password=r['password'],
+                groups=r['groups'],
+                active=active
             )
 
             return HttpResponse(ret, content_type='text/plain')
