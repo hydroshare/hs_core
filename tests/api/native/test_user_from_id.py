@@ -1,4 +1,6 @@
-## test case for user_from_id API
+## test case for user_from_id API Tian Gan
+# the first 3 test functions are similar from the original test_utils.py
+# add one test function : test_accept_user_pk(self)
 
 from __future__ import absolute_import
 from unittest import TestCase
@@ -19,8 +21,6 @@ class TestUserFromId(TestCase):
 
     def tearDown(self):
         User.objects.all().delete()
-
-
 
     def test_accept_user_instance(self):
         self.assertEquals(
