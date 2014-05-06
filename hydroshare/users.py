@@ -129,7 +129,9 @@ def set_access_rules(pk, user=None, group=None, access=None, allow=False):
         raise TypeError('access was none of {donotdistribute, public, edit, view}  ')
 
 
-def create_account(email, username=None, first_name=None, last_name=None, superuser=None, groups=None):
+def create_account(
+        email, username=None, first_name=None, last_name=None, superuser=None, groups=None, password=None, active=True
+):
     """
     Create a new user within the HydroShare system.
 
@@ -163,9 +165,23 @@ def create_account(email, username=None, first_name=None, last_name=None, superu
         groups[i] = Group.objects.get_or_create(name=g)[0] if isinstance(g, basestring) else g
 
     if superuser:
-        u = User.objects.create_superuser(username, email, first_name=first_name, last_name=last_name, password=None)
+        u = User.objects.create_superuser(
+            username,
+            email,
+            first_name=first_name,
+            last_name=last_name,
+            password=password
+        )
     else:
-        u = User.objects.create_user(username, email, first_name=first_name, last_name=last_name, password=None)
+        u = User.objects.create_user(
+            username, email,
+            first_name=first_name,
+            last_name=last_name,
+            password=password,
+        )
+        if not active:
+            u.is_active=False
+            u.save()
 
     u.groups = groups
 
