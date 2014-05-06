@@ -1,4 +1,4 @@
-# test file for get_resource file  Tian Gan
+# test file for get_resource_file  Tian Gan
 from __future__ import absolute_import
 import os
 from unittest import TestCase
@@ -45,7 +45,6 @@ class TestGetResourceFile(TestCase):
         )
 
         # test if the added test file is obtained
-        print os.path.basename(hydroshare.get_resource_file(self.res.short_id, self.file.name).name)
         self.assertEqual(
             self.file.name,
             os.path.basename(hydroshare.get_resource_file(self.res.short_id, self.file.name).name),
