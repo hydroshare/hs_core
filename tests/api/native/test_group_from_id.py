@@ -1,4 +1,6 @@
-## test case for group_from_id API
+## test case for group_from_id API  Tian Gan
+## the first 3 test functions are similar from the test_utils.py
+## add the test_accept_group_pk(self) test function
 
 from __future__ import absolute_import
 from unittest import TestCase
@@ -27,10 +29,6 @@ class TestGroupFromId(TestCase):
     def tearDown(self):
         User.objects.all().delete()
         Group.objects.all().delete()
-        # self.user.dispose()
-        # self.user = None
-        # self.group.dispose()
-        # self.group = None
 
     def test_accept_group_instance(self):
         self.assertEquals(
