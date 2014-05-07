@@ -4,26 +4,35 @@
 
 {% block title %}
 
-    Create Resource | <small>Upload files to create a new resource.</small>
+    Create Resource
 
 {% endblock %}
 
 {% block main %}
 
-<h2>Uploaded Files:</h2>
+    <h2>Upload files to create a new Resource:</h2>
 
+
+    <ul>
+    <li>All of the files you upload here will be grouped together into a "Resource"</li>
+    <li>File size is limited to ??? MB per file</li>
+    <li>Once you've added all of your files, you can describe your Resource using the form below</li>
+    <li>Files are private, until you choose to share them</li>
+    </ul>
+
+<h3>Add your files here:</h3>
     <table class="table">
     <tr>
         <td><input class="form-control" type="file" name="" id=""/></td>
         <td><button class="btn btn-danger btn-block">Delete</button></td>
     </tr>
     <tr>
-        <td>Resource 2</td>
-        <td>File Button Thing</td>
+        <td><input class="form-control" type="file" name="" id=""/></td>
+        <td><button class="btn btn-danger btn-block">Delete</button></td>
     </tr>
     <tr>
-        <td>Resource 3</td>
-        <td>File Button Thing</td>
+        <td><input class="form-control" type="file" name="" id=""/></td>
+        <td><button class="btn btn-danger btn-block">Delete</button></td>
     </tr>
     <tfoot>
         <tr>
@@ -34,6 +43,12 @@
     </tfoot>
     </table>
 
+    <h2>Describe your Resource with metadata:</h2>
+
+    <p>Use this form to create metadata for your Resource. Be as descriptive as you can since all of this information will show up when your Resource is displayed. You can edit this information later.
+</p>
+
+<h3>Add your metadata here:</h3>
     <form class="form-horizontal" role="form">
   <div class="form-group">
     <label for="" class="col-sm-2 control-label">Resource Type</label>
