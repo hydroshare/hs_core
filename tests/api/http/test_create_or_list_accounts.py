@@ -9,7 +9,7 @@ from django.contrib.auth.models import User
 from hs_core import hydroshare
 
 
-class ResourceTest(ResourceTestCase):
+class CreateOrListAccountsTest(ResourceTestCase):
 
     def setUp(self):
         self.api_client = TestApiClient()
