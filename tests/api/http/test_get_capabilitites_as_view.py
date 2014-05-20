@@ -26,13 +26,13 @@ class GetCapabilities(ResourceTestCase):
         User.objects.all().delete()
 
     def test_generic(self):
-        get_data={'pk':res.short_id}
-        res = hydroshare.create_resource('GenericResource',self.user,'res1')
+        res = hydroshare.create_resource('GenericResource', self.user, 'res1')
+        get_data={'pk': res.short_id}
         resp = self.api_client.get(self.url, data=get_data)
 
         self.assertValidJSONResponse(resp)
 
-        capabilities=self.deserialize(resp)
+        capabilities = self.deserialize(resp)
 
         self.assertEqual(capabilities, None)
                 
