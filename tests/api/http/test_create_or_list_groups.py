@@ -8,68 +8,74 @@ IMPORTANT- the api calls list_users, but it should call list_groups
 
 """
 from tastypie.test import ResourceTestCase, TestApiClient
+from tastypie.serializers import Serializer
 from django.contrib.auth.models import Group, User
 from hs_core import hydroshare
 
 
 class CreateOrListGroupsTest(ResourceTestCase):
-
+    serializer = Serializer()
     def setUp(self):
 
         self.api_client = TestApiClient()
-        
-        #create a few groups- 
-        owner = hydroshare.create_account(
+
+        user = hydroshare.create_account(
             'shaun@gmail.com',
             username='user0',
             first_name='User0_FirstName',
             last_name='User0_LastName',
         )
-        for num in range(3):
-            hydroshare.create_group(name="group{0}".format(num), owners=[owner])
 
-
+        g0=hydroshare.create_group(name="group0")
+        g1=hydroshare.create_group(name="group1")
+        g2=hydroshare.create_group(name="group2")
+        user.groups.add(g0,g1,g2)
+        self.g_ids=[g0.id,g1.id,g2.id]
+            
         self.groups_url_base = '/hsapi/groups/'
         
     def tearDown(self):
         Group.objects.all().delete()
+        User.objects.all().delete()
 
     def test_create_group(self):
 
         post_data = {'name': 'newgroup'}
 
-        resp = self.api_client.post(self.groups_url_base, data=post_data)
+        try:
+            resp = self.api_client.post(self.groups_url_base, data=post_data)  
         # returns TypeError:put() takes exactly 2 arguments (1 given)
-        resp = self.api_client.put(self.groups_url_base, data=post_data)
+        except:
+            resp = self.api_client.put(self.groups_url_base, data=post_data)   
         # returns HttpResponseForbidden
 
         self.assertHttpCreated(resp)
         
         grouplist = Group.objects.all() 
-
+        num_of_groups=len(grouplist)
+        
         assertTrue(any(Group.objects.filter(name='newgroup'))) 
-        assertTrue(len(grouplist)==4)
+        assertTrue(num_of_groups==4)
 
     def test_list_groups(self):
 
-        query = {
-            'owners': 'user0'
-        }
+        query = self.serialize({'user': 'user0'})
 
-        get_data = {
-            'query': query,
-            'status': '',
-            'start': '',
-            'count': ''
-        }
+        get_data = {'query': query }
 
-        resp = self.api_client.get(self.group_url_base, data=get_data)
-        
-        self.assertValidJSONResponse(resp)
+        resp = self.api_client.get(self.groups_url_base, data=get_data)
+        print resp
+        self.assertEqual(resp.status_code,200)
+
         groups = self.deserialize(resp)
-            
-        for g in groups:
-            self.assertEqual(g['owners'], 'user0')
-        for num in range(3):
-            self.assertIn('group{0}'.format(num),groups.itervalues())
+
+        new_ids=[]
+        for num in len(groups):
+            new_ids.append(groups[num]['id'])
+            self.assertEqual(str(groups[num]['user']), 'user0')
+            self.assertEqual(str(groups[num]['name']), 'group{0}'.format(num))
+        assertEqual(sorted(self.g_ids,sorted(new_ids))
+
+
+
 
