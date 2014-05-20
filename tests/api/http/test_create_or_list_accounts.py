@@ -14,7 +14,7 @@ class CreateOrListAccountsTest(ResourceTestCase):
     def setUp(self):
         self.account_url_base = '/hsapi/accounts/'
 
-        self.api_client=TestApiClient()
+        self.api_client = TestApiClient()
         
     def tearDown(self):
         User.objects.all().delete()
@@ -27,8 +27,8 @@ class CreateOrListAccountsTest(ResourceTestCase):
         post_data = {
             'email': 'shaun@gmail.com',
             'username': username,
-            'first_name':'shaun',
-            'last_name':'livingston',
+            'first_name': 'shaun',
+            'last_name': 'livingston',
             'password': password,
             'superuser': True           
         }
@@ -47,43 +47,36 @@ class CreateOrListAccountsTest(ResourceTestCase):
 
     def test_list_users(self):
 
-        user0=hydroshare.create_account(
+        hydroshare.create_account(
             'shaun@gmail.com',
             username='user0',
             first_name='User0_FirstName',
             last_name='User0_LastName',
         )
 
-        user1=hydroshare.create_account(
+        hydroshare.create_account(
             'shaun@gmail.com',
             username='user1',
             first_name='User1_FirstName',
             last_name='User1_LastName',
         )
 
-        user2=hydroshare.create_account(
+        hydroshare.create_account(
             'shaun@gmail.com',
             username='user2',
             first_name='User2_FirstName',
             last_name='User2_LastName',
         )
         
-        query= {
-        'email':'shaun@gmail.com',
+        query = {
+            'email': 'shaun@gmail.com',
         }
 
-#        query={
-#            'from':'auth_user',
-#            'select': '*',
-#            'where':email='shauntheta@gmail.com'
-#            }
-
-
-        get_data={
-        'query': query,
-        'status':'',
-        'start':'',
-        'count':''
+        get_data = {
+            'query': query,
+            'status': '',
+            'start': '',
+            'count': ''
         }
         
         resp = self.api_client.get(self.account_url_base, data=get_data)
@@ -91,12 +84,10 @@ class CreateOrListAccountsTest(ResourceTestCase):
         for num in range(3):
             self.assertTrue(User.objects.filter(username='user{0}'.format(num)).exists())
 
-        users=self.deserialize(resp)
+        users = self.deserialize(resp)
 
      #I have no idea if this will work because I don't know what the response looks like, nor how else to test it
         for u in users:
             self.assertEqual(u['email'], 'shaun@gmail.com')
         for num in range(3):
             self.assertIn('user{0}'.format(num), users.itervalues())
-        
-        

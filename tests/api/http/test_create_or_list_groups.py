@@ -36,10 +36,12 @@ class CreateOrListGroupsTest(ResourceTestCase):
 
     def test_create_group(self):
 
-        post_data= {'name':'newgroup'}
+        post_data = {'name': 'newgroup'}
 
-        resp = self.api_client.post(self.groups_url_base, data=post_data ) #returns TypeError:put() takes exactly 2 arguments (1 given)
-        resp = self.api_client.put(self.groups_url_base, data=post_data ) #returns HttpResponseForbidden
+        resp = self.api_client.post(self.groups_url_base, data=post_data)
+        # returns TypeError:put() takes exactly 2 arguments (1 given)
+        resp = self.api_client.put(self.groups_url_base, data=post_data)
+        # returns HttpResponseForbidden
 
         self.assertHttpCreated(resp)
         
@@ -50,15 +52,15 @@ class CreateOrListGroupsTest(ResourceTestCase):
 
     def test_list_groups(self):
 
-        query= {
-        'owners':'user0' 
+        query = {
+            'owners': 'user0'
         }
 
-        get_data={
-        'query': query,
-        'status':'',
-        'start':'',
-        'count':''       
+        get_data = {
+            'query': query,
+            'status': '',
+            'start': '',
+            'count': ''
         }
 
         resp = self.api_client.get(self.group_url_base, data=get_data)

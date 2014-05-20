@@ -10,8 +10,6 @@ from django.contrib.auth.models import User
 from hs_core import hydroshare
 from tastypie.test import ResourceTestCase, TestApiClient
 from hs_core.models import GenericResource
-from hs_core.hydroshare.resource import create_resource, get_capabilities
-
 
 class GetCapabilities(ResourceTestCase):
     def setUp(self):
@@ -28,8 +26,9 @@ class GetCapabilities(ResourceTestCase):
         User.objects.all().delete()
 
     def test_generic(self):
-        res = create_resource('GenericResource',self.user,'res1')
-        resp = self.api_client.post(self.url, pk=res.short_id)
+        get_data={'pk':res.short_id}
+        res = hydroshare.create_resource('GenericResource',self.user,'res1')
+        resp = self.api_client.get(self.url, data=get_data)
 
         self.assertValidJSONResponse(resp)
 
@@ -41,4 +40,4 @@ class GetCapabilities(ResourceTestCase):
     def test_other_types(self):
         pass
         
-    
+
