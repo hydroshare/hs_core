@@ -1,76 +1,115 @@
 __author__ = 'shaunjl'
 """
-Tastypie REST API tests for CreateOrListAccounts modeled after: https://github.com/hydroshare/hs_core/blob/master/tests/api/http/test_resource.py
+Tastypie REST API tests for CreateOrListAccounts.as_view() modeled after: https://github.com/hydroshare/hs_core/blob/master/tests/api/http/test_resource.py
+
+comments-
+post returns TypeError, put returns HttpResponseForbidden (403)
+get expects a json query in a dictionary like data={'query': self.serialize({'email': 'shaun@gmail.com})}
 
 """
-from tastypie.test import ResourceTestCase
-from tastypie.test import TestApiClient
-from django.contrib.auth.models import User
+from tastypie.test import ResourceTestCase, TestApiClient
+from tastypie.serializers import Serializer
+from django.contrib.auth.models import User 
 from hs_core import hydroshare
-
+from hs_core.views.users_api import CreateOrListAccounts
 
 class CreateOrListAccountsTest(ResourceTestCase):
-
+    serializer = Serializer()
     def setUp(self):
+        self.account_url_base = '/hsapi/accounts/'
+
         self.api_client = TestApiClient()
-
-        self.username = 'creator'
-        self.password = 'password'
-
-        # manually create a user to be used for comparison with user created in POST and received in GET
-        self.manual_user = hydroshare.create_account(
-            'shauntheta@gmail.com',
-            username=self.username,
-            first_name='User_FirstName',
-            last_name='User_LastName',
-            superuser=True,
-        ) 
-
-        self.account_url_base = '/hsapi/accounts'
-        self.account_url = '/{0}/{1}/'.format(self.account_url_base, self.manual_user.id) 
-
-        # create data for POST that matches the manual_user
-        self.post_data = {
-            'email': 'shauntheta@gmail.com',
-            'username': self.username,
-            'superuser': True           
-        }
         
     def tearDown(self):
-        User.objects.all().delete() 
-
-    def get_credentials(self):
-        return self.create_basic( username=self.username, password=self.password )
+        User.objects.all().delete()
 
     def test_create_account(self):
-        # submitting POST request, with response type json
-        resp = self.api_client.post(self.account_url_base, format='json', data=self.post_data,
-                                    authentication=self.get_credentials() ) #maybe not base as URI
+
+        username = 'creator'    
+        password = 'password'
+        
+        post_data = CreateOrListAccounts.CreateAccountForm({
+            'email': 'shaun@gmail.com',
+            'username': username,
+            'first_name': 'shaun',
+            'last_name': 'livingston',
+            'password': password,
+            'superuser': True           
+        })
+
+        resp=self.api_client.post(self.account_url_base, data=post_data )
+        # returns TypeError:put() takes exactly 2 arguments (1 given)
+        resp=self.api_client.put(self.account_url_base, data=post_data)
+        # returns HttpResponseForbidden
 
         self.assertHttpCreated(resp)
+        self.assertTrue(User.objects.filter(email='shaun@gmail.com').exists())
+        self.assertTrue(User.objects.filter(username=username).exists())
+        self.assertTrue(User.objects.filter(first_name='shaun').exists())
+        self.assertTrue(User.objects.filter(last_name='livingston').exists())
+        self.assertTrue(User.objects.filter(superuser=True).exists())
 
-        # deserialize takes an HTTPResponse and returns a datastructure (usually a dictionary) 
-        usr_name = self.deserialize(resp) # Not sure how the PID will be encoded, assuming it is just a string
-        new_account_url = '{0}/{1}/'.format(self.account_url_base, usr_name )
+    def test_list_users(self):   
 
-        # submitting GET request, response type json
-        resp = self.api_client.get(new_account_url, format='json' )
-        self.assertValidJSONResponse(resp)
+        hydroshare.create_account(
+            'shaun@gmail.com',
+            username='user0',
+            first_name='User0_FirstName',
+            last_name='User0_LastName',
+        )
 
-        # deserialize takes an HTTPResponse and returns a datastructure (usually a dictionary) 
-        account = self.deserialize(resp)
+        hydroshare.create_account(
+            'shaun@gmail.com',
+            username='user1',
+            first_name='User1_FirstName',
+            last_name='User1_LastName',
+        )
+
+        hydroshare.create_account(
+            'shaun@gmail.com',
+            username='user2',
+            first_name='User2_FirstName',
+            last_name='User2_LastName',
+        )
+
+        num_of_accounts = len(User.objects.filter(email= 'shaun@gmail.com'))
         
-        self.assertEqual( self.post_data['email'], account.email )
-        self.assertEqual( self.post_data['username'], account.username )
+        query = self.serialize({
+            'email': 'shaun@gmail.com',
+        })
 
-    def test_list_users(self): #need to add multiple users 
-        resp = self.api_client.get(self.account_url, format='json',
-                                   authentication=self.get_credentials() )
-        self.assertValidJSONResponse(resp)
+        get_data = {'query': query}
 
-        account = self.deserialize(resp)
+        resp = self.api_client.get(self.account_url_base, data=get_data)
         
-        self.assertEqual( self.manual_user.username, account.username )
-        self.assertEqual( self.manual_user.email, account.email )
+        self.assertEqual(resp.status_code,200)
+
+        users = self.deserialize(resp) 
+
+        self.assertTrue(len(users)==num_of_accounts)
+        for num in range(num_of_accounts):
+            self.assertEqual(str(users[num]['email']), 'shaun@gmail.com')
+            self.assertEqual(str(users[num]['username']), 'user{0}'.format(num))
+            self.assertEqual(str(users[num]['first_name']), 'User{0}_FirstName'.format(num))
+            self.assertEqual(str(users[num]['last_name']), 'User{0}_LastName'.format(num))
+            
 
 
+
+'''
+from list_users- 
+print resp
+Vary: Accept-Language, Cookie
+Content-Type: application/json
+Content-Language: en
+
+[{"date_joined": "2014-05-20T20:05:13.755078", "email": "shaun@gmail.com", "first_name": "User0_FirstName",
+  "id": 55, "last_login": "2014-05-20T20:05:13.755078", "last_name": "User0_LastName",
+  "resource_uri": "/api/v1/user/55/", "username": "user0"}, {"date_joined": "2014-05-20T20:05:18.188848",
+ "email": "shaun@gmail.com", "first_name": "User1_FirstName", "id": 56, "last_login": "2014-05-20T20:05:18.188848",
+"last_name": "User1_LastName", "resource_uri": "/api/v1/user/56/", "username": "user1"},
+ {"date_joined": "2014-05-20T20:05:21.802584", "email": "shaun@gmail.com", "first_name": "User2_FirstName",
+  "id": 57, "last_login": "2014-05-20T20:05:21.802584", "last_name": "User2_LastName",
+  "resource_uri": "/api/v1/user/57/", "username": "user2"}]
+
+'''
