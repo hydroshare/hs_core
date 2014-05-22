@@ -128,6 +128,8 @@ def set_access_rules(pk, user=None, group=None, access=None, allow=False):
     else:
         raise TypeError('access was none of {donotdistribute, public, edit, view}  ')
 
+    return res.short_id
+
 
 def create_account(
         email, username=None, first_name=None, last_name=None, superuser=None, groups=None, password=None, active=True
