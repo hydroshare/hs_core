@@ -37,9 +37,11 @@ class CreateOrListAccountsTest(ResourceTestCase):
             'superuser': True           
         })
 
-        resp=self.api_client.post(self.account_url_base, data=post_data )
+        try:
+            resp=self.api_client.post(self.account_url_base, data=post_data )
         # returns TypeError:put() takes exactly 2 arguments (1 given)
-        resp=self.api_client.put(self.account_url_base, data=post_data)
+        except:
+            resp=self.api_client.put(self.account_url_base, data=post_data)
         # returns HttpResponseForbidden
 
         self.assertHttpCreated(resp)
