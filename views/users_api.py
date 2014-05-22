@@ -372,7 +372,6 @@ class CreateOrListGroups(View):
 
     Parameters:
     query - a string specifying the query to perform
-    status - (optional) parameter to filter groups returned based on status
     start=0 - (optional) the zero-based index of the first value, relative to the first record of the resultset that
         matches the parameters
     count=100 - (optional) the maximum number of results that should be returned in the response
@@ -457,7 +456,7 @@ class CreateOrListGroups(View):
             r = params.cleaned_data
             res = UserResource()
             bundles = []
-            for u in hydroshare.list_users(r['query'], r['status'], r['start'], r['count']):
+            for u in hydroshare.list_groups(r['query'], r['start'], r['count']):
                 bundle = res.build_bundle(obj=u, request=self.request)
                 bundles.append(res.full_dehydrate(bundle, for_list=True))
             list_json = res.serialize(None, bundles, "application/json")
