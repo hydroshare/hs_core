@@ -41,7 +41,7 @@ class GroupResource(ModelResource):
             'username': ALL,
         }
         authentication = MultiAuthentication(BasicAuthentication(), ApiKeyAuthentication(), SessionAuthentication())
-        # make it so only superusers and people with express permission can modify / create user objects
+        # make it so only superusers and people with express permission can modify / create group objects
         authorization = DjangoAuthorization()
 v1_api.register(GroupResource())
 
