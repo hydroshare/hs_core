@@ -331,7 +331,6 @@ def list_groups(query=None, start=None, count=None):
 
     Parameters:
     query - a string specifying the query to perform
-    status - (optional) parameter to filter groups returned based on status
     start=0 - (optional) the zero-based index of the first value, relative to the first record of the resultset that
         matches the parameters
     count=100 - (optional) the maximum number of results that should be returned in the response
