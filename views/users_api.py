@@ -9,7 +9,7 @@ import json
 from mezzanine.generic.models import Keyword
 from ga_resources.utils import get_user, json_or_jsonp
 from hs_core import hydroshare
-from hs_core.api import UserResource
+from hs_core.api import UserResource, GroupResource
 from hs_core.hydroshare.utils import group_from_id, user_from_id
 from hs_core.models import GroupOwnership
 from .utils import authorize, validate_json
@@ -372,7 +372,6 @@ class CreateOrListGroups(View):
 
     Parameters:
     query - a string specifying the query to perform
-    status - (optional) parameter to filter groups returned based on status
     start=0 - (optional) the zero-based index of the first value, relative to the first record of the resultset that
         matches the parameters
     count=100 - (optional) the maximum number of results that should be returned in the response
@@ -455,10 +454,10 @@ class CreateOrListGroups(View):
         params = CreateOrListGroups.ListGroupsForm(self.request.REQUEST)
         if params.is_valid():
             r = params.cleaned_data
-            res = UserResource()
+            res = GroupResource()
             bundles = []
-            for u in hydroshare.list_users(r['query'], r['status'], r['start'], r['count']):
-                bundle = res.build_bundle(obj=u, request=self.request)
+            for g in hydroshare.list_groups(r['query'], r['start'], r['count']):
+                bundle = res.build_bundle(obj=g, request=self.request)
                 bundles.append(res.full_dehydrate(bundle, for_list=True))
             list_json = res.serialize(None, bundles, "application/json")
 
