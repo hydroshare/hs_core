@@ -1,52 +1,42 @@
-'''
-Unittest for def get_capabilities(pk)
+__author__ = 'shaunjl'
+"""
+Tastypie REST API tests for GetCapabilities.as_view() modeled after: https://github.com/hydroshare/hs_core/blob/master/tests/api/http/test_resource.py
 
-author's notes- 
-I think this should be renamed get_extra_capabilities
-must be extended to test other types of resources for release 3
+note- only GET is currently implemented
+test_othertypes must be added to in release 3
 
-'''
-__author__='shaunjl'
-
-import unittest
-from hs_core import hydroshare
+"""
 from django.contrib.auth.models import User
-from hs_core.models import GenericResource
+from hs_core import hydroshare
+from tastypie.serializers import Serializer
+from tastypie.test import ResourceTestCase, TestApiClient
 
-class TestGetCapabilities(unittest.TestCase):
-
-    def setUp(self): #runs at the beginning of every test
-        pass
-    def tearDown(self): #runs at the end of every test 
-
-        GenericResource.objects.all().delete()
-        User.objects.filter(username='shaun').delete()
+class GetCapabilities(ResourceTestCase):
+    serializer = Serializer()
+    def setUp(self):
+        self.api_client=TestApiClient()
+        self.user = hydroshare.create_account(
+            'shaun@gmail.com',
+            username='user',
+            first_name='User_FirstName',
+            last_name='User_LastName',
+            )
+        self.url_base = '/hsapi/capabilities/'
         
+    def tearDown(self):
+        User.objects.all().delete()
+
     def test_generic(self):
+        res = hydroshare.create_resource('GenericResource', self.user, 'res1')
+        url='{0}{1}/'.format(self.url_base,res.short_id)
+        resp = self.api_client.get(url)
 
-        user = User.objects.create_user('shaun', 'shauntheta@gmail.com', 'shaun6745')
+        self.assertValidJSONResponse(resp)
 
-        res1 = hydroshare.create_resource('GenericResource',user,'res1')
+        capabilities = self.deserialize(resp)
 
-        extras = hydroshare.get_capabilities(res1.short_id)
-
-        self.assertTrue(extras==None)
-
-     def test_othertypes(self):
-         pass
+        self.assertEqual(capabilities, None)
         
- 
-'''
-check def extra_capabilities on hs_core/models.py
-
-useful test assertions-
-assertEqual(foo,bar) tests if foo==bar
-assertTrue(foo) tests boolean value of any statement you want
-assertRaises
-
-see also https://docs.python.org/2.7/library/unittest.html
-
-https://github.com/hydroshare/hs_core/blob/master/hydroshare/resource.py
-https://github.com/hydroshare/hs_core/commit/2e2454acf27ac3c39d014dedb18a151263f797c3
-
-'''
+    def test_other_types(self):
+        pass
+        
