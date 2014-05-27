@@ -14,7 +14,7 @@ class TestResolveDOIAPI(TestCase):
         GenericResource.objects.all().delete()
         pass
 
-    def test_resource_modified(self):
+    def test_resolve_doi(self):
         # create a user to be used for creating the resource
         user_creator = hydroshare.create_account(
             'creator@usu.edu',
