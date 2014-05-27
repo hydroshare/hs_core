@@ -31,7 +31,11 @@ class TestSetAccessRules(TestCase):
 
         self.new_res = resource.create_resource(
             'GenericResource',
+<<<<<<< HEAD
+            self.user1,
+=======
             self.admin_user,
+>>>>>>> 3cfa14b599519095210a4e65917d829ea915b354
             'My Test Resource'
             )
 

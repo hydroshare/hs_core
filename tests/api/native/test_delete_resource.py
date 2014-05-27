@@ -1,3 +1,5 @@
+from django.http import Http404
+
 __author__ = 'tonycastronova'
 
 from unittest import TestCase
@@ -48,11 +50,10 @@ class TestGetResource(TestCase):
         self.assertTrue(res is not None)
 
         # delete the resource
-        resource.delete_resource(self.pk)
+        resource.delete_resource(self.pid)
 
         # try to get the resource again
-        res = resource.get_resource(self.pid)
-        self.assertTrue(res is None)
+        self.assertRaises(resource.get_resource(self.pid), Http404)
 
 
 

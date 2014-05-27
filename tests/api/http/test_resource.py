@@ -101,7 +101,7 @@ class ResourceTest(ResourceTestCase):
         self.assertEquals( new_data['title'], updated_data['title'] )
 
     def test_resource_delete(self):
-        self.assertHttpAccepted( self.api_client.delete(self.resource_url, format='json',
-                                                        authentication=self.get_credentials() ))
+        x = self.api_client.delete(self.resource_url, format='json',  authentication=self.get_credentials() )
+        self.assertIn(x.status_code, [202, 204, 301])
         self.assertHttpNotFound( self.api_client.get(self.resource_url, format='json',
                                                      authentication=self.get_credentials() ))
