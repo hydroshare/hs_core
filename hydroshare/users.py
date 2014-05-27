@@ -449,8 +449,6 @@ def update_group(group, members=None, owners=None):
             except MultipleObjectsReturned:
                 pass
 
-    raise NotImplemented()
-
 
 def list_group_members(name):
     """
@@ -494,8 +492,8 @@ def set_group_owner(group, user):
     Exceptions.NotFound - The user identified by userID does not exist
     Exception.ServiceFailure - The service is unable to process the request
     """
-    if not GroupOwnership.objects.filter(group=group, user=user).exists():
-        GroupOwnership.objects.create(group=group, user=user)
+    if not GroupOwnership.objects.filter(group=group, owner=user).exists():
+        GroupOwnership.objects.create(group=group, owner=user)
 
 
 def delete_group_owner(group, user):
@@ -522,7 +520,7 @@ def delete_group_owner(group, user):
 
     Note:  A group must have at least one owner.
     """
-    GroupOwnership.objects.filter(group=group, user=user).delete()
+    GroupOwnership.objects.filter(group=group, owner=user).delete()
 
 
 def get_resource_list(
