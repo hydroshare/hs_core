@@ -1,0 +1,69 @@
+{% extends 'pages/page.html' %}
+
+{% load geoanalytics_tags pages_tags mezzanine_tags comment_tags %}
+
+{% block main %}
+
+    <h2>"Resource Name" | <small>Resource Details</small></h2>
+
+<div class="clearfix">
+    <button class="btn btn-primary">Share</button> <button class="btn btn-primary">Edit</button> <button class="btn btn-primary">Delete</button>
+</div>
+
+<div class="pull-left"><img src="/placeholder.png"></div>
+
+    <p><strong>Resource Type:</strong> Generic Resource</p>
+    <p><strong>Created by:</strong> Jeff Horsburgh</p>
+    <p><strong>Created on:</strong> 06/10/2012</p>
+    <p><strong>Keywords:</strong> Observations Catalog, Data Card, Little Bear River, Utah, CUAHSI, Water, Utah State University, Continuous Monitoring, Water Quality, Streamflow</p>
+    <p><strong>Size:</strong> 250 KB</p>
+    <p><strong>Extent:</strong> </p>
+    <table class="table table-condensed">
+    <tr>
+        <td><strong>Left:</strong> -111.95</td>
+        <td><strong>Right:</strong> -111.79</td>
+    </tr>
+    <tr>
+        <td><strong>Top:</strong> 41.73</td>
+        <td><strong>Bottom:</strong> 41.48</td>
+    </tr>
+
+    </table>
+
+
+<h2>Resource Description</h2>
+
+<p><strong>Abstract:</strong> Utah State University is conducting continuous monitoring within the Little Bear River watershed of northern Utah, USA to investigate the use of surrogate measures such as turbidity in creating high frequency load estimates for constituents that cannot be measured continuously. This shapefile contains location of USU’s continuous monitoring sites.</p>
+
+<p><strong>Citation:</strong>  Horsburgh, J. S., D. K. Stevens, D. G. Tarboton, N. O. Mesner, A. Spackman Jones, and S. Gurrero, (2009), Monitoring data collected within the Little Bear River Experimental Watershed, Utah, USA, HydroShare,
+http://hydroshare.org/resource/XXXXXXXXXXX.</p>
+
+
+<h3>Content:</h3>
+        <table class="table table-striped">
+    <tr>
+        <td>FileName1</td>
+        <td><button class="btn btn-danger btn-block">Preview</button></td>
+        <td><button class="btn btn-danger btn-block">Download</button></td>
+    </tr>
+    <tr>
+        <td>FileName2</td>
+        <td><button class="btn btn-danger btn-block">Preview</button></td>
+        <td><button class="btn btn-danger btn-block">Download</button></td>
+    </tr>
+    <tr>
+        <td>FileName3</td>
+        <td><button class="btn btn-danger btn-block">Preview</button></td>
+        <td><button class="btn btn-danger btn-block">Download</button></td>
+    </tr>
+    <tfoot>
+        <tr>
+            <td></td>
+            <td><button class="btn btn-primary btn-block">Export All</button></td>
+        </tr>
+
+    </tfoot>
+    </table>
+
+
+{% endblock %}

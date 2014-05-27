@@ -128,6 +128,8 @@ def set_access_rules(pk, user=None, group=None, access=None, allow=False):
     else:
         raise TypeError('access was none of {donotdistribute, public, edit, view}  ')
 
+    return res.short_id
+
 
 def create_account(
         email, username=None, first_name=None, last_name=None, superuser=None, groups=None, password=None, active=True
@@ -329,7 +331,6 @@ def list_groups(query=None, start=None, count=None):
 
     Parameters:
     query - a string specifying the query to perform
-    status - (optional) parameter to filter groups returned based on status
     start=0 - (optional) the zero-based index of the first value, relative to the first record of the resultset that
         matches the parameters
     count=100 - (optional) the maximum number of results that should be returned in the response

@@ -29,15 +29,13 @@ class testAddResourceFiles(unittest.TestCase):
         myfile1 = open(n2,"r")
         myfile2 = open(n3,"r")
 
-        l1 = [myfile,myfile1,myfile2]
-
         res1 = create_resource('GenericResource',user,'res1') #create resource
 
         #delete all resource files for created resource
         res1.files.all().delete()
 
         #add files
-        add_resource_files(res1.short_id,l1)
+        add_resource_files(res1.short_id,myfile,myfile1,myfile2)
 
         #add each file of resource to list
         res1 = get_resource_by_shortkey(res1.short_id)

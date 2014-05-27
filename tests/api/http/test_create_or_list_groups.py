@@ -4,7 +4,6 @@ Tastypie REST API tests for CreateOrListGroups.as_view() modeled after: https://
 
 comments- post returns TypeError, put returns HttpResponseForbidden (403)
 
-IMPORTANT- the api calls list_users, but it should call list_groups
 
 """
 from tastypie.test import ResourceTestCase, TestApiClient
@@ -19,7 +18,7 @@ class CreateOrListGroupsTest(ResourceTestCase):
 
         self.api_client = TestApiClient()
 
-        user = hydroshare.create_account(
+        self.user = hydroshare.create_account(   
             'shaun@gmail.com',
             username='user0',
             first_name='User0_FirstName',
@@ -29,7 +28,7 @@ class CreateOrListGroupsTest(ResourceTestCase):
         g0=hydroshare.create_group(name="group0")
         g1=hydroshare.create_group(name="group1")
         g2=hydroshare.create_group(name="group2")
-        user.groups.add(g0,g1,g2)
+        self.user.groups.add(g0,g1,g2)
         self.g_ids=[g0.id,g1.id,g2.id]
             
         self.groups_url_base = '/hsapi/groups/'
@@ -59,7 +58,7 @@ class CreateOrListGroupsTest(ResourceTestCase):
 
     def test_list_groups(self):
 
-        query = self.serialize({'user': 'user0'})
+        query = self.serialize({'user': self.user.id})  
 
         get_data = {'query': query }
 
@@ -68,14 +67,24 @@ class CreateOrListGroupsTest(ResourceTestCase):
         self.assertEqual(resp.status_code,200)
 
         groups = self.deserialize(resp)
-
+        
         new_ids=[]
         for num in range(len(groups)):
             new_ids.append(groups[num]['id'])
             self.assertEqual(str(groups[num]['user']), 'user0')
             self.assertEqual(str(groups[num]['name']), 'group{0}'.format(num))
-        self.assertEqual(sorted(self.g_ids,sorted(new_ids)))
+
+        self.assertEqual(sorted(self.g_ids),sorted(new_ids))
 
 
 
+'''
+from test_list_groups:
+print resp
+Vary: Accept-Language, Cookie
+Content-Type: application/json
+Content-Language: en
 
+[{"id": 4, "name": "group0", "resource_uri": "/api/v1/group/4/"}, {"id": 5, "name": "group1",
+"resource_uri": "/api/v1/group/5/"}, {"id": 6, "name": "group2", "resource_uri": "/api/v1/group/6/"}]
+'''
