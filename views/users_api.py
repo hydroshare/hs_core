@@ -82,7 +82,7 @@ class SetAccessRules(View):
         raise NotImplemented()
 
     def post(self, _, pk):
-        return self.put(pk)
+        return self.put(_, pk)
 
     def put(self, _, pk):
         return self.set_access_rules(self.request, pk)
@@ -253,7 +253,7 @@ class CreateOrListAccounts(View):
 
     def create_account(self):
         if not get_user(self.request).is_superuser:
-            if settings.DEBUG or self.request.META.get('HTTP_REFERER', '').contains("hydroshare.org"): # fixme insecure vs spoofed header
+            if settings.DEBUG or ("hydroshare.org" in self.request.META.get('HTTP_REFERER', '')): # fixme insecure vs spoofed header
                 active=False
             else:
                 raise exceptions.PermissionDenied("user must be superuser to create an account")
