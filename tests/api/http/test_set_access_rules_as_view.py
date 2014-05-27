@@ -2,7 +2,7 @@ __author__ = 'shaunjl'
 """
 Tastypie REST API tests for SetAccessRules.as_view()
 
-comments-
+comments- getting 404s for both
 
 """
 from tastypie.test import ResourceTestCase, TestApiClient
