@@ -170,7 +170,7 @@ class ResourceCRUD(View):
     def get_resource(self, pk):
         authorize(self.request, pk, view=True)
 
-        return HttpResponseRedirect(hydroshare.get_resource(pk).bag.url)
+        return HttpResponseRedirect(hydroshare.get_resource(pk).url)
 
     def update_resource(self, pk):
         authorize(self.request, pk, edit=True)

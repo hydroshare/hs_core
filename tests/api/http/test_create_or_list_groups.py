@@ -53,8 +53,8 @@ class CreateOrListGroupsTest(ResourceTestCase):
         grouplist = Group.objects.all() 
         num_of_groups=len(grouplist)
         
-        assertTrue(any(Group.objects.filter(name='newgroup'))) 
-        assertTrue(num_of_groups==4)
+        self.assertTrue(any(Group.objects.filter(name='newgroup')))
+        self.assertTrue(num_of_groups==4)
 
     def test_list_groups(self):
 
@@ -73,7 +73,9 @@ class CreateOrListGroupsTest(ResourceTestCase):
             new_ids.append(groups[num]['id'])
             self.assertEqual(str(groups[num]['user']), 'user0')
             self.assertEqual(str(groups[num]['name']), 'group{0}'.format(num))
-        assertEqual(sorted(self.g_ids),sorted(new_ids))
+
+        self.assertEqual(sorted(self.g_ids),sorted(new_ids))
+
 
 
 '''
@@ -85,3 +87,4 @@ Content-Language: en
 
 [{"id": 4, "name": "group0", "resource_uri": "/api/v1/group/4/"}, {"id": 5, "name": "group1",
 "resource_uri": "/api/v1/group/5/"}, {"id": 6, "name": "group2", "resource_uri": "/api/v1/group/6/"}]
+'''
