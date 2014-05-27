@@ -54,8 +54,8 @@ class CreateOrListGroupsTest(ResourceTestCase):
         grouplist = Group.objects.all() 
         num_of_groups=len(grouplist)
         
-        assertTrue(any(Group.objects.filter(name='newgroup'))) 
-        assertTrue(num_of_groups==4)
+        self.assertTrue(any(Group.objects.filter(name='newgroup')))
+        self.assertTrue(num_of_groups==4)
 
     def test_list_groups(self):
 
@@ -70,11 +70,11 @@ class CreateOrListGroupsTest(ResourceTestCase):
         groups = self.deserialize(resp)
 
         new_ids=[]
-        for num in len(groups):
+        for num in range(len(groups)):
             new_ids.append(groups[num]['id'])
             self.assertEqual(str(groups[num]['user']), 'user0')
             self.assertEqual(str(groups[num]['name']), 'group{0}'.format(num))
-        assertEqual(sorted(self.g_ids,sorted(new_ids))
+        self.assertEqual(sorted(self.g_ids,sorted(new_ids)))
 
 
 

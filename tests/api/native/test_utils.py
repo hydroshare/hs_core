@@ -5,12 +5,11 @@ from django.contrib.auth.models import Group, User
 
 class TestUtils(TestCase):
     def setUp(self):
-        print 'set up'
         try:
             self.user = User.objects.create_user('user1', email='user1@nowhere.com')
-            self.user.save()
         except:
-            self.user = None
+            self.tearDown()
+            self.user = User.objects.create_user('user1', email='user1@nowhere.com')
 
         self.group, _ = Group.objects.get_or_create(name='group1')
         self.res, created = GenericResource.objects.get_or_create(
@@ -24,13 +23,11 @@ class TestUtils(TestCase):
             self.res.owners.add(self.user)
 
     def tearDown(self):
-        print "tear down"
         User.objects.all().delete()
         Group.objects.all().delete()
         GenericResource.objects.all().delete()
 
     def test_get_resource_types(self):
-        print 'run test'
         # first time gets them anew
         self.assertListEqual(
             [GenericResource],
