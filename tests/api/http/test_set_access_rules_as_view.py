@@ -39,23 +39,22 @@ class CreateOrListAccountsTest(ResourceTestCase):
             'allow': 'true'
         }
 
-        resp=self.api_client.put(url, data=put_data)
+        resp = self.api_client.put(url, data=put_data)
 
-        assertEqual(resp.status_code,200)
+        assertEqual(resp.status_code, 200)
 
     def test_set_group_rules(self):   
         group = hydroshare.create_group(name="group0")
 
         url = '{0}{1}/'.format(self.account_url_base, group.id)
 
-        query = self.serialize({
+        put_data = self.serialize({
             'principaltype': 'group',
              'principleID': group.id,
              'access': 'view',
              'allow': 'true'
         })
 
-
         resp = self.api_client.put(url, data=put_data)
 
-        assertEqual(resp.status_code,200)
+        assertEqual(resp.status_code, 200)
