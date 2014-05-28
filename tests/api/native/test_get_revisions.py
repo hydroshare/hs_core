@@ -39,8 +39,6 @@ class TestGetRevisionsAPI(TestCase):
         res_revisions = hydroshare.get_revisions(resource.short_id)
         self.assertEqual(len(res_revisions), 1)
 
-        # resource_bag_count_old = resource.bags.all().count()
-        #
         # set the resource last changed by a different user - to a create another revision of the resource
         hydroshare.utils.resource_modified(resource, resource_changed_by)
         res_revisions = hydroshare.get_revisions(resource.short_id)
