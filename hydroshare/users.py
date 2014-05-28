@@ -181,9 +181,9 @@ def create_account(
             last_name=last_name,
             password=password,
         )
-        if not active:
-            u.is_active=False
-            u.save()
+    if not active:
+        u.is_active=False
+        u.save()
 
     u.groups = groups
 
