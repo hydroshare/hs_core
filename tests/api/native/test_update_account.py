@@ -25,18 +25,18 @@ class UpdateAccountTest(ResourceTestCase):
         Group.objects.all().delete()
 
     def test_basic(self):
-        kwargs = {'groups':('group0'),
-                  'email':'shauntheta@gmail.com',
-                  'username':'shaunuser',
-                  'first_name':'john',
-                  'last_name':'livingston',
-                  'notes':'these are some notes'}
+        kwargs = {'groups': ('group0'),
+                  'email': 'shauntheta@gmail.com',
+                  'username': 'shaunuser',
+                  'first_name': 'john',
+                  'last_name': 'livingston',
+                  'notes': 'these are some notes'}
 
-        hydroshare.update_account(user,**kwargs)
+        hydroshare.update_account(self.user, **kwargs)
 
-        self.assertEqual(user.email,'shauntheta@gmail.com')
-        self.assertEqual(user.first_name,'john')
-        self.assertEqual(user.last_name,'livingston')
-        self.assertEqual(user.get_profile().notes,'these are some notes')
-        self.assertTrue(Group.objects.filter(user=user).exists)
+        self.assertEqual(self.user.email, 'shauntheta@gmail.com')
+        self.assertEqual(self.user.first_name, 'john')
+        self.assertEqual(self.user.last_name, 'livingston')
+        self.assertEqual(self.user.get_profile().notes, 'these are some notes')
+        self.assertTrue(Group.objects.filter(user=self.user).exists)
 

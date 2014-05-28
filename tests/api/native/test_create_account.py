@@ -61,9 +61,9 @@ class CreateAccountTest(ResourceTestCase):
         g0 = hydroshare.create_group(name="group0")
         g1 = hydroshare.create_group(name="group1")
         g2 = hydroshare.create_group(name="group2")
-        groups=[g0,g1,g2]
+        groups = [g0, g1, g2]
 
-        username,first_name,last_name,password = 'shaunjl', 'shaun','joseph','mypass'
+        username,first_name,last_name,password = 'shaunjl', 'shaun', 'joseph', 'mypass'
         user = hydroshare.create_account(
             'shaun@gmail.com',
             username=username,
@@ -71,8 +71,8 @@ class CreateAccountTest(ResourceTestCase):
             last_name=last_name,
             groups=groups
             )
-        new_groups = Group.objects.filter(user=user.id)
-        self.assertEqual(groups,new_groups)
+        new_groups = list(Group.objects.filter(user=user.id))
+        self.assertEqual(groups-new_groups, [])
 
     def test_email_function(self):
         pass

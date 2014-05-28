@@ -63,9 +63,9 @@ class ListUsersTest(ResourceTestCase):
     def test_differentiate(self):
         new_user = hydroshare.create_account(
             'joe@gmail.com',
-            username='user1',
-            first_name='User1_FirstName',
-            last_name='User1_LastName',
+            username='user3',
+            first_name='User3_FirstName',
+            last_name='User3_LastName',
         )
 
         q = self.query

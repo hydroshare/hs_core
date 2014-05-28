@@ -11,7 +11,7 @@ from django.contrib.auth.models import User, Group
 from hs_core import hydroshare
 from hs_core.views.users_api import SetAccessRules
 
-class CreateOrListAccountsTest(ResourceTestCase):
+class SetAccessRulesTest(ResourceTestCase):
     serializer = Serializer()
     def setUp(self):
         self.account_url_base = '/hsapi/resource/accessRules/'
@@ -41,7 +41,7 @@ class CreateOrListAccountsTest(ResourceTestCase):
 
         resp = self.api_client.put(url, data=put_data)
 
-        assertEqual(resp.status_code, 200)
+        self.assertEqual(resp.status_code, 200)
 
     def test_set_group_rules(self):   
         group = hydroshare.create_group(name="group0")
@@ -57,4 +57,4 @@ class CreateOrListAccountsTest(ResourceTestCase):
 
         resp = self.api_client.put(url, data=put_data)
 
-        assertEqual(resp.status_code, 200)
+        self.assertEqual(resp.status_code, 200)
