@@ -72,7 +72,7 @@ class CreateAccountTest(ResourceTestCase):
             groups=groups
             )
         new_groups = list(Group.objects.filter(user=user.id))
-        self.assertEqual(groups-new_groups, [])
+        self.assertEqual(groups, new_groups)
 
     def test_email_function(self):
         pass
