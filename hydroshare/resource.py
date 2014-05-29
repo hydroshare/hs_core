@@ -1,7 +1,8 @@
 ### resource API
-from django.core.exceptions import ObjectDoesNotExist
+from django.core.exceptions import ObjectDoesNotExist, DoesNotExist
 from django.core.files import File
 from django.core.files.uploadedfile import UploadedFile
+from django.contrib.auth.models import User
 from mezzanine.generic.models import Keyword, AssignedKeyword
 from dublincore.models import QualifiedDublinCoreElement
 from hs_core.hydroshare import hs_bagit
@@ -321,6 +322,15 @@ def create_resource(
     for file in files:
         ResourceFile.objects.create(content_object=resource, resource_file=file)
 
+    if isinstance(owner, basestring):
+        owner_name = owner
+        if User.objects.filter(username=owner):
+            owner = User.objects.filter(username=owner)
+        else:
+            owner = User.objects.filter(email=owner)
+        if not owner:
+            raise DoesNotExist(owner_name)
+
     resource.view_users.add(owner)
     resource.edit_users.add(owner)
     resource.owners.add(owner)
@@ -415,6 +425,14 @@ def update_resource(
 
     if 'owner' in kwargs:
         owner = kwargs['owner']
+        if isinstance(owner, basestring):
+            owner_name = owner
+            if User.objects.filter(username=owner):
+                owner = User.objects.filter(username=owner)
+            else:
+                owner = User.objects.filter(email=owner)
+            if not owner:
+                raise DoesNotExist(owner_name)
         resource.view_users.add(owner)
         resource.edit_users.add(owner)
         resource.owners.add(owner)
