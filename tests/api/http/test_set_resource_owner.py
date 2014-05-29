@@ -2,9 +2,7 @@ __author__ = 'shaunjl'
 """
 Tastypie REST API tests for SetResourceOwner.as_view
 
-questions-
-
-comments-
+comments- set owner test gives 403
 
 """
 from django.contrib.auth.models import User
@@ -31,7 +29,6 @@ class SetResourceOwnerTest(ResourceTestCase):
 
     def tearDown(self):
         User.objects.all().delete()
-        GenericResource.objects.all().delete()
 
     def test_set_owner(self):
         res = hydroshare.create_resource('GenericResource', self.user, 'res1')
@@ -48,3 +45,5 @@ class SetResourceOwnerTest(ResourceTestCase):
 
         self.assertEqual(resp.body, res.short_id)
 
+
+        hydroshare.delete_resource(res.short_id)

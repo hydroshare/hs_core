@@ -180,9 +180,9 @@ def create_account(
             last_name=last_name,
             password=password,
         )
-        if not active:
-            u.is_active=False
-            u.save()
+    if not active:
+        u.is_active=False
+        u.save()
 
     u.groups = groups
     ApiKey.objects.get_or_create(user=u)
@@ -231,35 +231,47 @@ def update_account(user, **kwargs):
     from django.contrib.auth.models import Group
 
     groups = kwargs.get('groups', [])
-    groups = zip(
-        *(Group.objects.get_or_create(name=g)
-          if isinstance(g, basestring) else g
-          for g in groups)
-    )[0]
-    
+    if groups:
+        if len(groups) == 1:
+            groups = [(Group.objects.get_or_create(name=groups)
+                      if isinstance(groups, basestring) else groups)[0]]
+        else:
+            groups = zip(
+                *(Group.objects.get_or_create(name=g)
+                  if isinstance(g, basestring) else g
+                  for g in groups))[0]
+
     if 'password' in kwargs:
         user.set_password(kwargs['password'])
-    
+
     blacklist = {'username', 'password', 'groups'}  # handled separately or cannot change
     for k in blacklist.intersection(kwargs.keys()):
         del kwargs[k]
 
     try:
-        profile = user.get_profile()        
-        profile_update = dict(*filter(lambda x, _: hasattr(profile, x), kwargs.items()))
+        profile = user.get_profile()
+        profile_update = dict()
+        update_keys = filter(lambda x: hasattr(profile, str(x)), kwargs.keys())
+        for key in update_keys:
+            profile_update[key] = kwargs[key]
         for k, v in profile_update.items():
             setattr(profile, k, v)
         profile.save()
     except AttributeError as e:
         raise exceptions.ValidationError(e.message)  # ignore deprecated user profile module when we upgrade to 1.7
-    
-    user_update = dict(*filter(lambda x, _: hasattr(user, x), kwargs.items()))
+
+    user_update = dict()
+    update_keys = filter(lambda x: hasattr(user, str(x)), kwargs.keys())
+    for key in update_keys:
+            user_update[key] = kwargs[key]
     for k, v in user_update.items():
         setattr(user, k, v)
     user.save()
 
     user.groups = groups
     return user.username
+
+
 
 
 def get_user_info(user):
@@ -449,8 +461,6 @@ def update_group(group, members=None, owners=None):
             except MultipleObjectsReturned:
                 pass
 
-    raise NotImplemented()
-
 
 def list_group_members(name):
     """
@@ -494,8 +504,8 @@ def set_group_owner(group, user):
     Exceptions.NotFound - The user identified by userID does not exist
     Exception.ServiceFailure - The service is unable to process the request
     """
-    if not GroupOwnership.objects.filter(group=group, user=user).exists():
-        GroupOwnership.objects.create(group=group, user=user)
+    if not GroupOwnership.objects.filter(group=group, owner=user).exists():
+        GroupOwnership.objects.create(group=group, owner=user)
 
 
 def delete_group_owner(group, user):
@@ -522,7 +532,7 @@ def delete_group_owner(group, user):
 
     Note:  A group must have at least one owner.
     """
-    GroupOwnership.objects.filter(group=group, user=user).delete()
+    GroupOwnership.objects.filter(group=group, owner=user).delete()
 
 
 def get_resource_list(

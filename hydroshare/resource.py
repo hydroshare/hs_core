@@ -298,7 +298,7 @@ def create_resource(
     :param view_users: list of email addresses, usernames, or User instances who will be given view permissions
     :param edit_groups: list of group names or Group instances who will be given edit permissions
     :param view_groups: list of group names or Group instances who will be given view permissions
-    :param keywords: string list. list of keywords to add to the reosurce
+    :param keywords: string list. list of keywords to add to the resource
     :param dublin_metadata: list of dicts containing keys { 'term', 'qualifier', 'content' } respecting dublin core std.
     :param files: list of Django File or UploadedFile objects to be attached to the resource
     :param kwargs: extra arguments to fill in required values in AbstractResource subclasses
@@ -347,7 +347,7 @@ def create_resource(
             resource.view_groups.add(group)
 
     if keywords:
-        ks = [Keyword.objects.get_or_create(k) for k in keywords]
+        ks = [Keyword.objects.get_or_create(title=k) for k in keywords]
         ks = zip(*ks)[0]  # ignore whether something was created or not.  zip is its own inverse
 
         for k in ks:
@@ -448,7 +448,7 @@ def update_resource(
 
     if keywords:
         AssignedKeyword.objects.filter(content_object=resource).delete()
-        ks = [Keyword.objects.get_or_create(k) for k in keywords]
+        ks = [Keyword.objects.get_or_create(title=k) for k in keywords]
         ks = zip(*ks)[0]  # ignore whether something was created or not.  zip is its own inverse
 
         for k in ks:
@@ -553,7 +553,7 @@ def update_science_metadata(pk, dublin_metadata=None, keywords=None, **kwargs):
 
     if keywords:
         AssignedKeyword.objects.filter(content_object=resource).delete()
-        ks = [Keyword.objects.get_or_create(k) for k in keywords]
+        ks = [Keyword.objects.get_or_create(title=k) for k in keywords]
         ks = zip(*ks)[0]  # ignore whether something was created or not.  zip is its own inverse
 
         for k in ks:

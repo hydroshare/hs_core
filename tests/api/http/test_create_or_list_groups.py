@@ -53,26 +53,27 @@ class CreateOrListGroupsTest(ResourceTestCase):
         num_of_groups=len(grouplist)
         
         self.assertTrue(any(Group.objects.filter(name='newgroup')))
-        self.assertTrue(num_of_groups==4)
+        self.assertEqual(num_of_groups, 4)
 
     def test_list_groups(self):
 
         query = self.serialize({'user': self.user.id})  
 
-        get_data = {'query': query }
+        get_data = {'query': query}
 
         resp = self.api_client.get(self.groups_url_base, data=get_data)
         print resp
-        self.assertEqual(resp.status_code,200)
+        self.assertEqual(resp.status_code, 200)
 
         groups = self.deserialize(resp)
         
-        new_ids=[]
+        new_ids = []
         for num in range(len(groups)):
             new_ids.append(groups[num]['id'])
-            self.assertEqual(str(groups[num]['name']), 'group{0}'.format(num))
+            self.assertTrue(Group.objects.filter(user='user{0}'.format(num)).exists())
+            self.assertEqual(str(groups[num]['name']), 'group{0}'.format(num))c
 
-        self.assertEqual(sorted(self.g_ids),sorted(new_ids))
+        self.assertEqual(sorted(self.g_ids), sorted(new_ids))
 
 
 
