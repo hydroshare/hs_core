@@ -31,11 +31,7 @@ class TestSetAccessRules(TestCase):
 
         self.new_res = resource.create_resource(
             'GenericResource',
-<<<<<<< HEAD
-            self.user1,
-=======
             self.admin_user,
->>>>>>> 3cfa14b599519095210a4e65917d829ea915b354
             'My Test Resource'
             )
 
@@ -59,34 +55,35 @@ class TestSetAccessRules(TestCase):
         res_id = self.new_res.short_id
 
         # test to see if everything is sane
-        pid = users.set_access_rules(res_id, user=None, group=None, access=users.PUBLIC, allow=True)
+        result = users.set_access_rules(res_id, user=None, group=None, access=users.PUBLIC, allow=True)
         self.assertEqual(
             res_id,
-            pid,
+            result.short_id,
             msg="Incorrect or no resource id returned."
         )
 
         # make sure public access was set correctly
-        self.assertEqual(
+        self.assertTrue(
             self.new_res.public,
-            True,
             msg="Access rule for PUBLIC = False, expected True"
         )
-        users.set_access_rules(res_id, user=None, group=None, access=users.PUBLIC, allow=False)
-        self.assertEqual(
+
+        self.new_res = users.set_access_rules(res_id, user=None, group=None, access=users.PUBLIC, allow=False)
+        self.assertFalse(
             self.new_res.public,
-            False,
             msg="Access rule for PUBLIC = True, expected False"
         )
 
         # make sure donotdistribute access was set correctly
-        users.set_access_rules(res_id, user=None, group=None, access=users.DO_NOT_DISTRIBUTE, allow=True)
+        self.new_res = users.set_access_rules(res_id, user=None, group=None, access=users.DO_NOT_DISTRIBUTE, allow=True)
         self.assertEqual(
             self.new_res.do_not_distribute,
             True,
             msg="Access rule for DO_NOT_DISTRIBUTE = False, expected True"
         )
-        users.set_access_rules(res_id, user=None, group=None, access=users.DO_NOT_DISTRIBUTE, allow=False)
+
+
+        self.new_res = users.set_access_rules(res_id, user=None, group=None, access=users.DO_NOT_DISTRIBUTE, allow=False)
         self.assertEqual(
             self.new_res.do_not_distribute,
             False,
@@ -100,12 +97,13 @@ class TestSetAccessRules(TestCase):
 #        )
 
         # test EDIT access with user id provided
-        pid = users.set_access_rules(res_id, user=self.test_user, group=None, access=users.EDIT, allow=True)
+        self.new_res = users.set_access_rules(res_id, user=self.test_user, group=None, access=users.EDIT, allow=True)
         self.assertTrue(
             self.new_res.edit_users.filter(pk=self.test_user.pk).exists(),
             msg="Failure when trying to add EDIT access for user"
         )
-        users.set_access_rules(res_id, user=self.test_user, group=None, access=users.EDIT, allow=False)
+
+        self.new_res = users.set_access_rules(res_id, user=self.test_user, group=None, access=users.EDIT, allow=False)
         self.assertFalse(
             self.new_res.edit_users.filter(pk=self.test_user.pk).exists(),
             msg="Failure when trying to remove EDIT access for user"
@@ -118,14 +116,15 @@ class TestSetAccessRules(TestCase):
         )
 
         # test VIEW access with group id provided
-        pid = users.set_access_rules(self.new_res, user=None, group=self.test_group, access=users.VIEW, allow=True)
+        self.new_res = users.set_access_rules(self.new_res, user=None, group=self.test_group, access=users.VIEW, allow=True)
         self.assertTrue(
-            self.new_res.view_users.filter(pk=self.test_group.pk).exists(),
+            self.new_res.view_groups.filter(pk=self.test_group.pk).exists(),
             msg="Failure when trying to add VIEW access for group"
         )
-        users.set_access_rules(self.new_res, user=None, group=self.test_group, access=users.VIEW, allow=False)
+
+        self.new_res = users.set_access_rules(self.new_res, user=None, group=self.test_group, access=users.VIEW, allow=False)
         self.assertFalse(
-            self.new_res.view_users.filter(pk=self.test_group.pk).exists(),
+            self.new_res.view_groups.filter(pk=self.test_group.pk).exists(),
             msg="Failure when trying to remove VIEW access for group"
         )
 

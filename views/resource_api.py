@@ -10,6 +10,7 @@ import json
 from mezzanine.generic.models import Keyword
 from ga_resources.utils import get_user, json_or_jsonp
 from hs_core import hydroshare
+from hs_core.views import utils
 from .utils import authorize, validate_json
 from django.views.generic import View
 from django.core import exceptions
@@ -127,6 +128,7 @@ class ResourceCRUD(View):
     """
 
     class UpdateResourceForm(forms.Form):
+        title = forms.CharField(required=False)
         keywords = forms.ModelMultipleChoiceField(Keyword.objects.all(), required=False)
         dublin_metadata = forms.CharField(validators=[validate_json], required=False)
         edit_users = forms.ModelMultipleChoiceField(User.objects.all(), required=False)
@@ -146,7 +148,11 @@ class ResourceCRUD(View):
         full_text_search = forms.CharField(required=False)
 
     class CreateResourceForm(UpdateResourceForm):
-        resource_type = forms.ChoiceField(choices=hydroshare.get_resource_types())
+        resource_type = forms.ChoiceField(
+            choices=zip(
+                [x.__name__ for x in hydroshare.get_resource_types()],
+                [x.__name__ for x in hydroshare.get_resource_types()]
+            ))
 
     @method_decorator(csrf_exempt)
     def dispatch(self, request, *args, **kwargs):
@@ -170,44 +176,46 @@ class ResourceCRUD(View):
     def get_resource(self, pk):
         authorize(self.request, pk, view=True)
 
-        return HttpResponseRedirect(hydroshare.get_resource(pk).url)
+        return HttpResponseRedirect(hydroshare.get_resource(pk).bag.url)
 
     def update_resource(self, pk):
         authorize(self.request, pk, edit=True)
 
-        params = ResourceCRUD.UpdateResourceForm(self.request.REQUEST)
+        params = utils.create_form(ResourceCRUD.UpdateResourceForm, self.request)
         if params.is_valid():
             r = params.cleaned_data
             res = hydroshare.update_resource(
                 pk,
-                edit_users = r['edit_users'],
-                view_users = r['view_users'],
-                edit_groups = r['edit_groups'],
-                view_groups = r['view_groups'],
-                keywords = r['keywords'],
+                edit_users=r['edit_users'],
+                view_users=r['view_users'],
+                edit_groups=r['edit_groups'],
+                view_groups=r['view_groups'],
+                keywords=r['keywords'],
                 dublin_metadata=json.loads(r['dublin_metadata']) if r['dublin_metadata'] else {},
-                files=self.request.FILES.values(),
                 **{k: v for k, v in self.request.REQUEST.items() if k not in r}
             )
-            return HttpResponse(res.short_id, content_type='text/plain')
+            return HttpResponse(res.short_id, content_type='text/plain', status='204')
         else:
-            raise exceptions.ValidationError('invalid request')
+            raise exceptions.ValidationError(params.errors)
 
     def delete_resource(self, pk):
         authorize(self.request, pk, edit=True)
 
         hydroshare.delete_resource(pk)
-        return HttpResponse(pk, content_type=None)
+        return HttpResponse(pk, content_type=None, status=204)
 
     def create_resource(self):
         if not get_user(self.request).is_authenticated():
+            print self.request.user
             raise exceptions.PermissionDenied('user must be logged in.')
 
-        params = ResourceCRUD.CreateResourceForm(self.request.REQUEST)
+        params = utils.create_form(ResourceCRUD.CreateResourceForm, self.request)
         if params.is_valid():
             r = params.cleaned_data
             res = hydroshare.create_resource(
                 resource_type=r['resource_type'],
+                owner=self.request.user,
+                title=r['title'],
                 edit_users=r['edit_users'],
                 view_users=r['view_users'],
                 edit_groups=r['edit_groups'],
@@ -219,10 +227,10 @@ class ResourceCRUD(View):
             )
             return HttpResponse(res.short_id, content_type='text/plain')
         else:
-            raise exceptions.ValidationError('invalid request')
+            raise exceptions.ValidationError(params.errors)
 
     def get_resource_list(self):
-        params = ResourceCRUD.GetResourceListForm(self.request.REQUEST)
+        params = utils.create_form(ResourceCRUD.GetResourceListForm, self.request)
         if params.is_valid():
             r = params.cleaned_data
             if r['dc']:
@@ -240,7 +248,7 @@ class ResourceCRUD(View):
 
             return json_or_jsonp(self.request, ret)
         else:
-            raise exceptions.ValidationError('invalid request')
+            raise exceptions.ValidationError(params.errors)
 
 
 class GetUpdateScienceMetadata(View):
@@ -271,7 +279,7 @@ class GetUpdateScienceMetadata(View):
         return self.update_science_metadata(pk)
 
     def post(self, _, pk):
-        return self.put(pk)
+        return self.put(_, pk)
 
     def delete(self, _, pk):
         raise NotImplemented()
@@ -286,7 +294,7 @@ class GetUpdateScienceMetadata(View):
     def update_science_metadata(self, pk):
         authorize(self.request, pk, edit=True)
 
-        params = ResourceCRUD.UpdateResourceForm(self.request.REQUEST)
+        params = utils.create_form(ResourceCRUD.UpdateResourceForm, self.request)
         if params.is_valid():
             r = params.cleaned_data
             res = hydroshare.update_resource(
@@ -335,7 +343,7 @@ class GetUpdateSystemMetadata(View):
         return self.update_system_metadata(pk)
 
     def post(self, _, pk):
-        return self.put(pk)
+        return self.put(_, pk)
 
     def delete(self, _, pk):
         raise NotImplemented()
@@ -350,7 +358,7 @@ class GetUpdateSystemMetadata(View):
     def update_system_metadata(self, pk):
         authorize(self.request, pk, edit=True)
 
-        params = ResourceCRUD.UpdateResourceForm(self.request.REQUEST)
+        params = utils.create_form(ResourceCRUD.UpdateResourceForm, self.request)
         if params.is_valid():
             r = params.cleaned_data
             res = hydroshare.update_resource(
@@ -603,7 +611,7 @@ class PublishResource(View):
         return self.publish_resource(pk)
 
     def post(self, _, pk):
-        return self.put(pk)
+        return self.put(_, pk)
 
     def delete(self, _, pk):
         raise NotImplemented()

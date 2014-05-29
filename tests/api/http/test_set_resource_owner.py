@@ -15,13 +15,17 @@ class SetResourceOwnerTest(ResourceTestCase):
     serializer = Serializer()
     def setUp(self):
         self.api_client=TestApiClient()
+
         self.user = hydroshare.create_account(
             'shaun@gmail.com',
             username='user',
             first_name='User_FirstName',
             last_name='User_LastName',
-            )
+            password='foobar',
+            superuser=True
+        )
         self.url_base = '/hsapi/resource/owner/'
+        self.api_client.client.login(username=self.user.username, password=self.user.password)
 
     def tearDown(self):
         User.objects.all().delete()
@@ -33,15 +37,13 @@ class SetResourceOwnerTest(ResourceTestCase):
             username='user2',
             first_name='User2_FirstName',
             last_name='User2_LastName',
-            )
-        post_data={'user': user2.id}
+            password='password'
+        )
+        post_data={ 'user': user2.pk, 'api_key' : self.user.api_key.key }
         url='{0}{1}/'.format(self.url_base,res.short_id)
         resp = self.api_client.put(url, data=post_data)
 
-        self.assertValidJSONResponse(resp)
+        self.assertEqual(resp.body, res.short_id)
 
-        rtrned_res = self.deserialize(resp) #returned_resource
-
-        self.assertEqual(res.short_id, rtrned_res['short_id'])
 
         hydroshare.delete_resource(res.short_id)

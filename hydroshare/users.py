@@ -1,5 +1,6 @@
 from django.core.exceptions import MultipleObjectsReturned
 from django.contrib.auth.models import User, Group
+from tastypie.models import ApiKey
 from hs_core.models import GroupOwnership
 from .utils import get_resource_by_shortkey, user_from_id, group_from_id, get_resource_types
 from django.core import exceptions
@@ -128,7 +129,7 @@ def set_access_rules(pk, user=None, group=None, access=None, allow=False):
     else:
         raise TypeError('access was none of {donotdistribute, public, edit, view}  ')
 
-    return res.short_id
+    return res
 
 
 def create_account(
@@ -162,9 +163,7 @@ def create_account(
     username = username if username else email
 
     groups = groups if groups else []
-
-    for i, g in enumerate(groups):
-        groups[i] = Group.objects.get_or_create(name=g)[0] if isinstance(g, basestring) else g
+    groups = Group.objects.in_bulk(*groups) if groups and isinstance(groups[0], int) else groups
 
     if superuser:
         u = User.objects.create_superuser(
@@ -186,6 +185,7 @@ def create_account(
         u.save()
 
     u.groups = groups
+    ApiKey.objects.get_or_create(user=u)
 
     try:
         u.email_user(

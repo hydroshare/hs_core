@@ -209,7 +209,7 @@ class ResourceFile(models.Model):
     content_type = models.ForeignKey(ContentType)
 
     content_object = generic.GenericForeignKey('content_type', 'object_id')
-    resource_file = models.FileField(upload_to=get_path)
+    resource_file = models.FileField(upload_to=get_path, storage=getattr(s, 'RESOURCE_FILE_STORAGE', None))
 
 class Bags(models.Model):
     object_id = models.PositiveIntegerField()

@@ -32,6 +32,11 @@ class TestGetResource(TestCase):
             owners=[self.user]
             )
 
+    def tearDown(self):
+        self.user.delete()
+        self.group.delete()
+
+    def test_delete_resource(self):
         new_res = resource.create_resource(
             'GenericResource',
             self.user,
@@ -39,21 +44,22 @@ class TestGetResource(TestCase):
             )
         self.pid = new_res.short_id
 
-    def tearDown(self):
-        self.user.delete()
-        self.group.delete()
-
-    def test_delete_resource(self):
-
         # get the resource by pid
-        res = resource.get_resource(self.pid)
-        self.assertTrue(res is not None)
+        try:
+            resource.get_resource(self.pid)
+        except Http404:
+            self.fail('just created resource doesnt exist for some reason')
 
         # delete the resource
         resource.delete_resource(self.pid)
 
         # try to get the resource again
-        self.assertRaises(resource.get_resource(self.pid), Http404)
+        try:
+            resource.get_resource(self.pid), Http404
+        except Http404:
+            pass
+        else:
+            self.fail('resource continues to persist')
 
 
 
