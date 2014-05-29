@@ -182,6 +182,7 @@ def update_resource_file(pk, filename, f):
     resource = utils.get_resource_by_shortkey(pk)
     for rf in ResourceFile.objects.filter(object_id=resource.id):
         if os.path.basename(rf.resource_file.name) == filename:
+            rf.resource_file.delete()
             rf.resource_file = File(f) if not isinstance(f, UploadedFile) else f
             rf.save()
             return rf
@@ -258,7 +259,7 @@ def create_resource(
         resource_type, owner, title,
         edit_users=None, view_users=None, edit_groups=None, view_groups=None,
         keywords=None, dublin_metadata=None,
-        *files, **kwargs):
+        files=(), **kwargs):
     """
     Called by a client to add a new resource to HydroShare. The caller must have authorization to write content to
     HydroShare. The pid for the resource is assigned by HydroShare upon inserting the resource.  The create method
@@ -309,13 +310,13 @@ def create_resource(
             cls = tp
             break
     else:
-        raise NotImplemented("Type {resource_type} does not exist".format(**locals()))
+        raise NotImplementedError("Type {resource_type} does not exist".format(resource_type=resource_type))
 
     # create the resource
     resource = cls.objects.create(
         user=owner,
         creator=owner,
-        title=title,
+            title=title,
         **kwargs
     )
     for file in files:

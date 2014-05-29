@@ -12,6 +12,7 @@ from hs_core import hydroshare
 from hs_core.api import UserResource, GroupResource
 from hs_core.hydroshare.utils import group_from_id, user_from_id
 from hs_core.models import GroupOwnership
+from hs_core.views import utils
 from .utils import authorize, validate_json
 from django.views.generic import View
 from django.core import exceptions
@@ -90,7 +91,7 @@ class SetAccessRules(View):
     def set_access_rules(self, request, pk):
         res, _, _ = authorize(request, pk, full=True, superuser=True)
 
-        access_rules_form = SetAccessRules.SetAccessRulesForm(request.REQUEST)
+        access_rules_form = utils.create_form(SetAccessRules.SetAccessRulesForm, request)
         if access_rules_form.is_valid():
             r = access_rules_form.cleaned_data
 
@@ -103,7 +104,7 @@ class SetAccessRules(View):
                 tgt = group_from_id(r['principalID'])
                 ret = hydroshare.set_access_rules(group=tgt, pk=res, access=r['access'], allow=r['allow'])
         else:
-            distribute_form = SetAccessRules.SetDoNotDistributeForm(request.REQUEST)
+            distribute_form = utils.create_form(SetAccessRules.SetDoNotDistributeForm, request)
             if distribute_form.is_valid():
                 r = distribute_form.cleaned_data
                 ret = hydroshare.set_access_rules(pk=res, access=r['access'], allow=r['allow'])
@@ -145,18 +146,22 @@ class SetResourceOwner(View):
         raise NotImplemented()
 
     def post(self, _, pk):
-        return self.put(pk)
+        return self.put(_, pk)
 
     def put(self, _, pk):
         return self.set_resource_owner(self.request, pk)
 
     def set_resource_owner(self, request, pk):
         res, _, _ = authorize(request, pk, full=True, superuser=True)
-        params = SetResourceOwner.SetResourceOwnerForm(request.REQUEST)
+        params = utils.create_form(SetResourceOwner.SetResourceOwnerForm, self.request)
         if params.is_valid():
             r = params.cleaned_data
             tgt = user_from_id(r['user'])
-            return HttpResponse(hydroshare.set_resource_owner(pk=res, user=tgt), content_type='text/plain')
+            return HttpResponse(
+                hydroshare.set_resource_owner(pk=res, user=tgt),
+                content_type='text/plain',
+                status='201'
+            )
         else:
             raise exceptions.ValidationError("invalid input parameters")
 
@@ -260,7 +265,7 @@ class CreateOrListAccounts(View):
         else:
             active=True
 
-        params = CreateOrListAccounts.CreateAccountForm(self.request.REQUEST)
+        params = utils.create_form(CreateOrListAccounts.CreateAccountForm, self.request)
         if params.is_valid():
             r = params.cleaned_data
             ret = hydroshare.create_account(
@@ -277,7 +282,7 @@ class CreateOrListAccounts(View):
             return HttpResponse(ret, content_type='text/plain')
 
     def list_users(self):
-        params = CreateOrListAccounts.ListUsersForm(self.request.REQUEST)
+        params = utils.create_form(CreateOrListAccounts.ListUsersForm, self.request)
         if params.is_valid():
             r = params.cleaned_data
             res = UserResource()
@@ -429,7 +434,7 @@ class CreateOrListGroups(View):
         return self.list_groups()
 
     def post(self, _):
-        return self.put()
+        return self.put(_)
 
     def put(self, _):
         return self.create_group()
@@ -439,19 +444,19 @@ class CreateOrListGroups(View):
         if not get_user(self.request).is_authenticated():
             raise exceptions.PermissionDenied("user must be authenticated to create a group.")
 
-        params = CreateOrListGroups.CreateGroupForm(self.request.REQUEST)
+        params = utils.create_form(CreateOrListGroups.CreateGroupForm, self.request)
         if params.is_valid():
             r = params.cleaned_data
             r['owners'] = set(r['owners']) if r['owners'] else set()
             r['owners'].add(creator)
 
             g = hydroshare.create_group(**r)
-            return HttpResponse(g.name, content_type='text/plain')
+            return HttpResponse(g.name, content_type='text/plain', status='201')
         else:
             raise exceptions.ValidationError('invalid request')
 
     def list_groups(self):
-        params = CreateOrListGroups.ListGroupsForm(self.request.REQUEST)
+        params = utils.create_form(CreateOrListGroups.ListGroupsForm, self.request)
         if params.is_valid():
             r = params.cleaned_data
             res = GroupResource()
@@ -557,7 +562,7 @@ class SetOrDeleteGroupOwner(View):
         raise NotImplemented()
 
     def post(self, _, g, u):
-        return self.put(g, u)
+        return self.put(_, g, u)
 
     def put(self, _, g, u):
         return self.set_group_owner(g, u)
@@ -573,7 +578,7 @@ class SetOrDeleteGroupOwner(View):
             raise exceptions.PermissionDenied("user must be a group owner to change group ownership.")
         else:
             hydroshare.delete_group_owner(g, u)
-            return HttpResponse(g.name, content_type='text/plain')
+            return HttpResponse(g.name, content_type='text/plain', status='204')
 
     def set_group_owner(self, g, u):
         originator = get_user(self.request)
@@ -583,7 +588,7 @@ class SetOrDeleteGroupOwner(View):
             raise exceptions.PermissionDenied("user must be a group owner to change group ownership.")
         else:
             hydroshare.set_group_owner(g, u)
-            return HttpResponse(g.name, content_type='text/plain')
+            return HttpResponse(g.name, content_type='text/plain', status='204')
 
 
 class GetResourceList(View):
@@ -651,7 +656,7 @@ class GetResourceList(View):
         return self.get_resource_list()
 
     def get_resource_list(self):
-        params = GetResourceList.GetResourceListForm(self.request.REQUEST)
+        params = utils.create_form(GetResourceList.GetResourceListForm, self.request)
         if params.is_valid():
             r = params.cleaned_data
             if r['dc']:

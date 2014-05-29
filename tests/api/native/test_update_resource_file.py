@@ -97,8 +97,7 @@ class TestUpdateResourceFileAPI(TestCase):
 
         # test if the file name matches
         self.assertEqual(os.path.basename(rf.resource_file.name), new_file_name,
-                         msg="resource file name didn't match when the new file "
-                             "has the same name as the file to be updated")
+                         msg="{0} != {1}".format(os.path.basename(rf.resource_file.name), new_file_name))
 
         # exception ObjectDoesNotExist should be raised if resource does not have a file
         # for the given file name (file_not_in_resource.txt) to update
