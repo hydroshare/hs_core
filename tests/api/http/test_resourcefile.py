@@ -10,94 +10,114 @@ from django.contrib.auth.models import User
 from hs_core import hydroshare
 from tastypie.serializers import Serializer
 
+from hs_core.models import GenericResource
+
 class ResourceTest(ResourceTestCase):
     serializer= Serializer()
+
     def setUp(self):
         self.api_client = TestApiClient()
 
+        self.username = 'creator'
+        self.password = 'mybadpassword'
+
+        self.user = hydroshare.create_account(
+            'shaun@gmail.com',
+            username=self.username,
+            password=self.password,
+            first_name='User0_FirstName',
+            last_name='User0_LastName',
+        )
+
+        self.api_client.client.login(username=self.username, password=self.password)
+
+        self.url_proto = '/hsapi/resource/{0}/files/{1}/'
+
+        self.filename = 'test.txt'
+
+
     def tearDown(self):
         User.objects.all().delete()
-    def test_resource_file_get(self):  #404 ResponseNotFound- need to give it something other than 'test.txt'
-        user = hydroshare.create_account(
-            'shaun@gmail.com',
-            username='user0',
-            first_name='User0_FirstName',
-            last_name='User0_LastName',
-        )
-        n = "test.txt"
-        open(n,"w").close()
-        myfile = open(n,"r")
+        GenericResource.objects.all().delete()
 
-        res1 = hydroshare.create_resource('GenericResource', user, 'res1')
+    def test_resource_file_get(self):
+
+        myfile = open(self.filename, 'w')
+        myfile.write('hello world!\n')
+        myfile.close()
+        myfile = open(self.filename, 'r')
+
+        res1 = hydroshare.create_resource('GenericResource', self.user, 'res1')
 
         hydroshare.add_resource_files(res1.short_id, myfile)
-        url = 'hsapi/resource/{0}/files/{1}/'.format(res1.short_id, 'test.txt')
+        url = self.url_proto.format(res1.short_id, self.filename)
 
         resp = self.api_client.get(url)
+        self.assertIn(resp.status_code, [201, 200])
 
-        self.assertValidJSONResponse(resp)
 
     def test_resource_file_put(self):
-        user = hydroshare.create_account(
-            'shaun@gmail.com',
-            username='user0',
-            first_name='User0_FirstName',
-            last_name='User0_LastName',
-        )
-        n = "test.txt"
-        open(n,"w").close()
-        myfile = open(n,"r")
 
-        res1 = hydroshare.create_resource('GenericResource', user, 'res1')
+        myfile = open(self.filename, 'w')
+        myfile.write('hello world!\n')
+        myfile.close()
+        myfile = open(self.filename, 'r')
+
+        res1 = hydroshare.create_resource('GenericResource', self.user, 'res1')
 
         hydroshare.add_resource_files(res1.short_id, myfile)
 
-        n1 = "test1.txt"
-        open(n1,"w").close()
-        mynewfile = open(n1,"r")
+        mynewfile = open(self.filename, 'w')
+        mynewfile.write('anyone there?\n')
+        mynewfile.close()
+        mynewfile = open(self.filename, 'r')
 
-        url = 'hsapi/resource/{0}/files/{1}/'.format(res1.short_id, 'test.txt')
+        url = self.url_proto.format(res1.short_id, self.filename)
 
-        put_data = self.serialize({'f': 'test1.txt'})
+        put_data = { 'resource_file': mynewfile
+        }
 
-        resp = self.api_client.get(url, data=put_data)
-
+        resp = self.api_client.put(url, data=put_data)
         self.assertHttpAccepted(resp)
 
+        resp = self.api_client.get(url)
+        self.assertIn(resp.status_code, [201, 200])
+
+
     def test_resource_file_post(self):
-        user = hydroshare.create_account(
-            'shaun@gmail.com',
-            username='user0',
-            first_name='User0_FirstName',
-            last_name='User0_LastName',
-        )
-        n = "test.txt"
-        open(n,"w").close()
-        myfile = open(n,"r")
 
-        res1 = hydroshare.create_resource('GenericResource', user, 'res1')
+        myfile = open(self.filename, 'w')
+        myfile.write('hello world!\n')
+        myfile.close()
+        myfile = open(self.filename, 'r')
 
-        url = 'hsapi/resource/{0}/files/{1}/'.format(res1.short_id, 'test.txt')
+        res1 = hydroshare.create_resource('GenericResource', self.user, 'res1')
+
+        post_data = { 'resource_file': myfile
+        }
+
+        url = self.url_proto.format(res1.short_id, self.filename)
+
+        resp = self.api_client.post(url, data=post_data)
+        self.assertHttpAccepted(resp)
 
         resp = self.api_client.get(url)
+        self.assertIn(resp.status_code, [201, 200])
+
 
     def test_resource_file_delete(self):
 
-        user = hydroshare.create_account(
-            'shaun@gmail.com',
-            username='user0',
-            first_name='User0_FirstName',
-            last_name='User0_LastName',
-        )
-        n = "test.txt"
-        open(n,"w").close()
-        myfile = open(n,"r")
+        myfile = open(self.filename, 'w')
+        myfile.write('hello world!\n')
+        myfile.close()
+        myfile = open(self.filename, 'r')
 
-        res1 = hydroshare.create_resource('GenericResource', user, 'res1')
+        res1 = hydroshare.create_resource('GenericResource', self.user, 'res1')
 
         hydroshare.add_resource_files(res1.short_id, myfile)
-        url = 'hsapi/resource/{0}/files/{1}/'.format(res1.short_id, 'test.txt')
+        url = self.url_proto.format(res1.short_id, self.filename)
 
         resp = self.api_client.delete(url)
 
-        self.assertValidJSONResponse(resp)
+        self.assertIn(resp.status_code, [200, 202, 204])
+        self.assertHttpNotFound( self.api_client.get(url, format='json') )
