@@ -14,9 +14,13 @@ from django.contrib.auth.models import User
 from hs_core import hydroshare
 from hs_core.models import GenericResource
 
+import logging
+
 class ResourceTest(ResourceTestCase):
 
     def setUp(self):
+        self.logger = logging.getLogger(__name__)
+
         self.api_client = TestApiClient()
 
         self.username = 'creator'
@@ -69,8 +73,14 @@ class ResourceTest(ResourceTestCase):
         resp = self.api_client.post(self.resource_url_base, data=self.post_data )
         self.assertIn(resp.status_code, [201, 200])
 
-        pid = resp.body # Not sure how the PID will be encoded, assuming it is just a string
-        new_resource_url = '{0}/{1}/'.format(self.resource_url_base, pid)
+        # PID comes back as body of response, but API client doesn't seem to be
+        # parsing the response for us
+        pid = str(resp).split('\n')[-1]
+        new_resource_url = '{0}{1}/'.format(self.resource_url_base, pid)
+
+        # Fetch the newly created resource
+        resp = self.api_client.get(new_resource_url)
+        self.assertTrue(resp['Location'].endswith('.zip'))
 
 
     def test_resource_put(self):
