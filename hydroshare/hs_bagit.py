@@ -7,6 +7,8 @@ from hs_core.models import Bags
 from mezzanine.conf import settings
 import importlib
 import zipfile
+from foresite import *
+from rdflib import URIRef, Namespace
 
 def make_zipfile(output_filename, source_dir):
     """
@@ -53,13 +55,58 @@ def create_bag(resource):
     for f in resource.files.all():
         shutil.copy2(f.resource_file.path, contents_path)
 
+    tastypie_module = resource._meta.app_label + '.api'        # the module name should follow this convention
+    tastypie_name = resource._meta.object_name + 'Resource'    # the classname of the Resource seralizer
+    tastypie_api = importlib.import_module(tastypie_module)    # import the module
+    serializer = getattr(tastypie_api, tastypie_name)()        # make an instance of the tastypie resource       
+
     with open(bagit_path + '/resourcemetadata.json', 'w') as out:
-        tastypie_module = resource._meta.app_label + '.api'        # the module name should follow this convention
-        tastypie_name = resource._meta.object_name + 'Resource'    # the classname of the Resource seralizer
-        tastypie_api = importlib.import_module(tastypie_module)    # import the module
-        serializer = getattr(tastypie_api, tastypie_name)()        # make an instance of the tastypie resource
         bundle = serializer.build_bundle(obj=resource)             # build a serializable bundle out of the resource
-        out.write(serializer.serialize(None, serializer.full_dehydrate(bundle), 'application/json'))
+        out.write(serializer.serialize(None, serializer.full_dehydrate(bundle), 'application/json'))    
+
+    ##make the resource map:
+        
+    utils.namespaces['hsterms'] = Namespace('http://hydroshare.org/hydroshare/terms/')
+    utils.namespaceSearchOrder.append('hsterms')
+    utils.namespaces['citoterms'] = Namespace('http://purl.org/spar/cito/')
+    utils.namespaceSearchOrder.append('citoterms')
+
+    ag_uri = bagit_path + '/resourcemap.xml#aggregation'
+    a = Aggregation(ag_uri)
+
+    #Set properties of the aggregation
+    a._dc.title = resource.title
+    a._dcterms.created = arrow.get(resource.updated).format("YYYY.MM.DD.HH.mm.ss")
+    a._hsterms.hydroshareResourceType = resource._meta.object_name
+    a._ore.isDocumentedBy = bagit_path + '/resourcemetadata.json'
+    a._ore.isDescribedBy = bagit_path + '/resourcemap.xml'
+
+    #Create a description of the science metadata document that describes the whole resource and add it to the aggregation
+    sciMetaFile = AggregatedResource(bagit_path + '/resourcemetadata.json')
+    sciMetaFile._dc.title = "Dublin Core science metadata document describing the HydroShare resource"
+    sciMetaFile._citoterms.documents = ag_uri
+    sciMetaFile._dcterms.isAggregatedBy = ag_uri
+    sciMetaFile._dcterms.format = "application/rdf+xml"
+
+    #Create a description of the content file and add it to the aggregation
+    resFile = AggregatedResource(contents_path + '/' + resource.title)
+    resFile._dcterms.isAggregatedBy = ag_uri
+    resFile._dcterms.format = "text/csv"
+
+    #Add the resource files to the aggregation
+    a.add_resource(sciMetaFile)
+    a.add_resource(resFile)
+
+    #Register a serializer with the aggregation.  The registration creates a new ResourceMap, which needs a URI
+    serializer = RdfLibSerializer('xml')
+    resMap = a.register_serialization(serializer, bagit_path + '/resourcemap.xml')
+    resMap._dcterms.identifier = "resource_identifier"
+
+    #Fetch the serialization
+    remdoc = a.get_serialization()
+
+    with open(bagit_path + '/resourcemap.xml', 'w') as out:            
+         out.write(remdoc.data)
 
     bagit.make_bag(bagit_path, checksum=['md5'], bag_info={
         'title': resource.title,
