@@ -81,12 +81,12 @@ def create_bag(resource):
     a._ore.isDocumentedBy = bagit_path + '/resourcemetadata.json'
     a._ore.isDescribedBy = bagit_path + '/resourcemap.xml'
 
-    #Create a description of the science metadata document that describes the whole resource and add it to the aggregation
-    sciMetaFile = AggregatedResource(bagit_path + '/resourcemetadata.json')
-    sciMetaFile._dc.title = "Dublin Core science metadata document describing the HydroShare resource"
-    sciMetaFile._citoterms.documents = ag_uri
-    sciMetaFile._dcterms.isAggregatedBy = ag_uri
-    sciMetaFile._dcterms.format = "application/rdf+xml"
+    #Create a description of the metadata document that describes the whole resource and add it to the aggregation
+    resMetaFile = AggregatedResource(bagit_path + '/resourcemetadata.json')
+    resMetaFile._dc.title = "Dublin Core science metadata document describing the HydroShare resource"
+    resMetaFile._citoterms.documents = ag_uri
+    resMetaFile._dcterms.isAggregatedBy = ag_uri
+    resMetaFile._dcterms.format = "application/rdf+xml"
 
     #Create a description of the content file and add it to the aggregation
     resFile = AggregatedResource(contents_path + '/' + resource.title)
@@ -94,7 +94,7 @@ def create_bag(resource):
     resFile._dcterms.format = "text/csv"
 
     #Add the resource files to the aggregation
-    a.add_resource(sciMetaFile)
+    a.add_resource(resMetaFile)
     a.add_resource(resFile)
 
     #Register a serializer with the aggregation.  The registration creates a new ResourceMap, which needs a URI
