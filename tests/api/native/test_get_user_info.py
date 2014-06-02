@@ -80,39 +80,42 @@ class TestGetUserInfo(TestCase):
         # )
 
     def test_get_user_info_by_pk(self):
-        user_info = hydroshare.get_user_info(self.user.pk)
+        try:
+            user_info = hydroshare.get_user_info(self.user.pk)
+        except:
+            raise ValueError("get user info using user pk doesn't work.")
+        else:
+            # test user username
+            self.assertEqual(
+                user_info['username'],
+                self.user.username,
+                msg='obtained username is not correct'
+            )
 
-        # test user username
-        self.assertEqual(
-            user_info['username'],
-            self.user.username,
-            msg='obtained username is not correct'
-        )
+            # test user email
+            self.assertEqual(
+                user_info['email'],
+                self.user.email,
+                msg='obtained email is not correct'
+            )
 
-        # test user email
-        self.assertEqual(
-            user_info['email'],
-            self.user.email,
-            msg='obtained email is not correct'
-        )
+            # test user name
+            self.assertEqual(
+                user_info['last_name'],
+                self.user.last_name,
+                msg='user last name is not correct'
+            )
 
-        # test user name
-        self.assertEqual(
-            user_info['last_name'],
-            self.user.last_name,
-            msg='user last name is not correct'
-        )
+            self.assertEqual(
+                user_info['first_name'],
+                self.user.first_name,
+                msg='user first name is not correct'
+            )
 
-        self.assertEqual(
-            user_info['first_name'],
-            self.user.first_name,
-            msg='user first name is not correct'
-        )
-
-        # # test user group info
-        # self.assertEqual(
-        #     user_info['groups'],
-        #     self.group.name,
-        #     msg='obtained groups info is not correct'
-        # )
+            # # test user group info
+            # self.assertEqual(
+            #     user_info['groups'],
+            #     self.group.name,
+            #     msg='obtained groups info is not correct'
+            # )
 
