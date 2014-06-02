@@ -1,3 +1,7 @@
+from tempfile import NamedTemporaryFile
+import zipfile
+import requests
+
 __author__ = 'selimnairb@gmail.com'
 """
 Tastypie REST API tests for resources modeled after: http://django-tastypie.readthedocs.org/en/latest/testing.html
@@ -10,9 +14,13 @@ from django.contrib.auth.models import User
 from hs_core import hydroshare
 from hs_core.models import GenericResource
 
+import logging
+
 class ResourceTest(ResourceTestCase):
 
     def setUp(self):
+        self.logger = logging.getLogger(__name__)
+
         self.api_client = TestApiClient()
 
         self.username = 'creator'
@@ -30,23 +38,21 @@ class ResourceTest(ResourceTestCase):
         )
         self.user_url = '/hsapi/accounts/{0}/'.format(self.user_creator.username)
 
-        # create a resource without any owner
-        self.resource = GenericResource.objects.create(
-            user=self.user_creator,
+        self.api_client.client.login(username=self.username, password=self.password)
+
+        # create a resource
+        self.resource = hydroshare.create_resource(
+            resource_type='GenericResource',
             title='My resource',
-            creator=self.user_creator,
-            last_changed_by=self.user_creator,
-            doi='doi1000100010001'
+            owner=self.user_creator,
+            last_changed_by=self.user_creator
         )
-        self.resource_url_base = '/hsapi/resource'
-        self.resource_url = '{0}/{1}/'.format(self.resource_url_base, self.resource.short_id)
+        self.resource_url_base = '/hsapi/resource/'
+        self.resource_url = '{0}{1}/'.format(self.resource_url_base, self.resource.short_id)
 
         self.post_data = {
-            'user': self.user_url,
             'title': 'My REST API-created resource',
-            'creator': self.user_url,
-            'last_changed_by': self.user_url,
-            'doi': 'doi1000100010002'
+            'resource_type' : 'GenericResource'
         }
 
     def tearDown(self):
@@ -54,54 +60,38 @@ class ResourceTest(ResourceTestCase):
         GenericResource.objects.all().delete()
 
     def get_credentials(self):
-        return self.create_basic(username=self.username, password=self.password)
+        k = self.create_basic(username=self.username, password=self.password)
+        print k
+        return k
 
     def test_resource_get(self):
-        resp = self.api_client.get(self.resource_url, format='json',
-                                   authentication=self.get_credentials() )
-        self.assertValidJSONResponse(resp)
 
-        resource = self.deserialize(resp)
-        self.assertEqual( self.resource.short_id, resource.short_id )
-        self.assertEqual( self.resource.user, resource.user )
-        self.assertEqual( self.resource.title, resource.title )
-        self.assertEqual( self.resource.doi, resource.doi )
+        resp = self.api_client.get(self.resource_url)
+        self.assertTrue(resp['Location'].endswith('.zip'))
 
     def test_resource_post(self):
-        resp = self.api_client.post(self.resource_url_base, format='json', data=self.post_data,
-                                    authentication=self.get_credentials() )
-        self.assertHttpCreated(resp)
+        resp = self.api_client.post(self.resource_url_base, data=self.post_data )
+        self.assertIn(resp.status_code, [201, 200])
 
-        pid = self.deserialize(resp) # Not sure how the PID will be encoded, assuming it is just a string
-        new_resource_url = '{0}/{1}/'.format(self.resource_url_base, pid)
+        # PID comes back as body of response, but API client doesn't seem to be
+        # parsing the response for us
+        pid = str(resp).split('\n')[-1]
+        new_resource_url = '{0}{1}/'.format(self.resource_url_base, pid)
 
-        resp = self.api_client.get(new_resource_url, format='json')
-        self.assertValidJSONResponse(resp)
+        # Fetch the newly created resource
+        resp = self.api_client.get(new_resource_url)
+        self.assertTrue(resp['Location'].endswith('.zip'))
 
-        resource = self.deserialize(resp)
-        self.assertEqual( pid, resource.short_id )
-        self.assertEqual( self.post_data['user'], resource.user )
-        self.assertEqual( self.post_data['title'], resource.title )
-        self.assertEqual( self.post_data['doi'], resource.doi )
 
     def test_resource_put(self):
-        resp = self.api_client.get(self.resource_url, format='json',
-                                   authentication=self.get_credentials() )
-        self.assertValidJSONResponse(resp)
-
-        original_data = self.deserialize(resp)
-        new_data = original_data.copy()
+        new_data = {}
         new_data['title'] = 'My UPDATED REST API-created resource'
 
-        self.assertHttpAccepted( self.api_client.put(self.resource_url, format='json', data=new_data,
-                                                     authentication=self.get_credentials() ))
+        resp = self.api_client.put(self.resource_url, data=new_data)
+        self.assertIn(resp.status_code, ['202','204'])
 
-        updated_data = self.deserialize(self.api_client.get(self.resource_url, format='json'),
-                                        authentication=self.get_credentials() )
-        self.assertEquals( new_data['title'], updated_data['title'] )
 
     def test_resource_delete(self):
-        x = self.api_client.delete(self.resource_url, format='json',  authentication=self.get_credentials() )
+        x = self.api_client.delete(self.resource_url, format='json')
         self.assertIn(x.status_code, [202, 204, 301])
-        self.assertHttpNotFound( self.api_client.get(self.resource_url, format='json',
-                                                     authentication=self.get_credentials() ))
+        self.assertHttpNotFound( self.api_client.get(self.resource_url, format='json'))

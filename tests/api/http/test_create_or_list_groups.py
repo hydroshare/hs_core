@@ -1,3 +1,5 @@
+import json
+
 __author__ = 'shaunjl'
 """
 Tastypie REST API tests for CreateOrListGroups.as_view() modeled after: https://github.com/hydroshare/hs_core/blob/master/tests/api/http/test_resource.py
@@ -23,6 +25,8 @@ class CreateOrListGroupsTest(ResourceTestCase):
             username='user0',
             first_name='User0_FirstName',
             last_name='User0_LastName',
+            superuser=True,
+            password='foobar'
         )
 
         g0=hydroshare.create_group(name="group0")
@@ -32,21 +36,16 @@ class CreateOrListGroupsTest(ResourceTestCase):
         self.g_ids=[g0.id,g1.id,g2.id]
             
         self.groups_url_base = '/hsapi/groups/'
-        
+        self.api_client.client.login(username=self.user.username, password=self.user.password)
+
     def tearDown(self):
         Group.objects.all().delete()
         User.objects.all().delete()
 
     def test_create_group(self):
-
         post_data = {'name': 'newgroup'}
 
-        try:
-            resp = self.api_client.post(self.groups_url_base, data=post_data)  
-        # returns TypeError:put() takes exactly 2 arguments (1 given)
-        except:
-            resp = self.api_client.put(self.groups_url_base, data=post_data)   
-        # returns HttpResponseForbidden
+        resp = self.api_client.post(self.groups_url_base, data=post_data)
 
         self.assertHttpCreated(resp)
         
