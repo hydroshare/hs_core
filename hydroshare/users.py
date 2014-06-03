@@ -590,7 +590,7 @@ def get_resource_list(
         raise NotImplemented("Returning the full resource list is not supported.  at least limit by count")
 
     resource_types = get_resource_types()
-    queries = dict(*zip(resource_types, []))
+    queries = dict(*zip(resource_types, {}))
 
     for t, q in queries.items():
         if group:
