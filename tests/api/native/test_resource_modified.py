@@ -33,7 +33,7 @@ class TestResourceModifiedAPI(TestCase):
         )
 
         # create a resource
-        resource = hydroshare.create_resource('hs_core.GenericResource', user_creator, 'My resource')
+        resource = hydroshare.create_resource('GenericResource', user_creator, 'My resource')
 
         # get the number of bags currently exists for the resource
         resource_bag_count_old = resource.bags.all().count()

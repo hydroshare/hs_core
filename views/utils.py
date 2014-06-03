@@ -33,5 +33,13 @@ def authorize(request, res_id, edit=False, view=False, full=False, superuser=Fal
 def validate_json(js):
     try:
         json.loads(js)
-    except Exception:
+    except ValueError:
         raise exceptions.ValidationError('Invalid JSON')
+
+def create_form(formclass, request):
+    try:
+        params = formclass(data=json.loads(request.body))
+    except ValueError:
+        params = formclass(data=request.REQUEST)
+
+    return params

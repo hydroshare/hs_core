@@ -2,6 +2,7 @@
 from django.core.exceptions import ObjectDoesNotExist
 from django.core.files import File
 from django.core.files.uploadedfile import UploadedFile
+from django.contrib.auth.models import User
 from mezzanine.generic.models import Keyword, AssignedKeyword
 from dublincore.models import QualifiedDublinCoreElement
 from hs_core.hydroshare import hs_bagit
@@ -182,6 +183,7 @@ def update_resource_file(pk, filename, f):
     resource = utils.get_resource_by_shortkey(pk)
     for rf in ResourceFile.objects.filter(object_id=resource.id):
         if os.path.basename(rf.resource_file.name) == filename:
+            rf.resource_file.delete()
             rf.resource_file = File(f) if not isinstance(f, UploadedFile) else f
             rf.save()
             return rf
@@ -258,7 +260,7 @@ def create_resource(
         resource_type, owner, title,
         edit_users=None, view_users=None, edit_groups=None, view_groups=None,
         keywords=None, dublin_metadata=None,
-        *files, **kwargs):
+        files=(), **kwargs):
     """
     Called by a client to add a new resource to HydroShare. The caller must have authorization to write content to
     HydroShare. The pid for the resource is assigned by HydroShare upon inserting the resource.  The create method
@@ -297,7 +299,7 @@ def create_resource(
     :param view_users: list of email addresses, usernames, or User instances who will be given view permissions
     :param edit_groups: list of group names or Group instances who will be given edit permissions
     :param view_groups: list of group names or Group instances who will be given view permissions
-    :param keywords: string list. list of keywords to add to the reosurce
+    :param keywords: string list. list of keywords to add to the resource
     :param dublin_metadata: list of dicts containing keys { 'term', 'qualifier', 'content' } respecting dublin core std.
     :param files: list of Django File or UploadedFile objects to be attached to the resource
     :param kwargs: extra arguments to fill in required values in AbstractResource subclasses
@@ -309,17 +311,26 @@ def create_resource(
             cls = tp
             break
     else:
-        raise NotImplemented("Type {resource_type} does not exist".format(**locals()))
+        raise NotImplementedError("Type {resource_type} does not exist".format(resource_type=resource_type))
 
     # create the resource
     resource = cls.objects.create(
         user=owner,
         creator=owner,
-        title=title,
+            title=title,
         **kwargs
     )
     for file in files:
         ResourceFile.objects.create(content_object=resource, resource_file=file)
+
+    if isinstance(owner, basestring):
+        owner_name = owner
+        if User.objects.filter(username=owner):
+            owner = User.objects.filter(username=owner)
+        else:
+            owner = User.objects.filter(email=owner)
+        if not owner:
+            raise ObjectDoesNotExist(owner_name)
 
     resource.view_users.add(owner)
     resource.edit_users.add(owner)
@@ -346,7 +357,7 @@ def create_resource(
             resource.view_groups.add(group)
 
     if keywords:
-        ks = [Keyword.objects.get_or_create(k) for k in keywords]
+        ks = [Keyword.objects.get_or_create(title=k) for k in keywords]
         ks = zip(*ks)[0]  # ignore whether something was created or not.  zip is its own inverse
 
         for k in ks:
@@ -415,6 +426,14 @@ def update_resource(
 
     if 'owner' in kwargs:
         owner = kwargs['owner']
+        if isinstance(owner, basestring):
+            owner_name = owner
+            if User.objects.filter(username=owner):
+                owner = User.objects.filter(username=owner)
+            else:
+                owner = User.objects.filter(email=owner)
+            if not owner:
+                raise ObjectDoesNotExist(owner_name)
         resource.view_users.add(owner)
         resource.edit_users.add(owner)
         resource.owners.add(owner)
@@ -447,7 +466,7 @@ def update_resource(
 
     if keywords:
         AssignedKeyword.objects.filter(content_object=resource).delete()
-        ks = [Keyword.objects.get_or_create(k) for k in keywords]
+        ks = [Keyword.objects.get_or_create(title=k) for k in keywords]
         ks = zip(*ks)[0]  # ignore whether something was created or not.  zip is its own inverse
 
         for k in ks:
@@ -552,7 +571,7 @@ def update_science_metadata(pk, dublin_metadata=None, keywords=None, **kwargs):
 
     if keywords:
         AssignedKeyword.objects.filter(content_object=resource).delete()
-        ks = [Keyword.objects.get_or_create(k) for k in keywords]
+        ks = [Keyword.objects.get_or_create(title=k) for k in keywords]
         ks = zip(*ks)[0]  # ignore whether something was created or not.  zip is its own inverse
 
         for k in ks:

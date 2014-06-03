@@ -35,11 +35,6 @@ class TestUsersAPI(TestCase):
             members=[user1, user2],
             owners=[user1])
 
-        # test attempt to add a duplicate user
-        self.assertRaises(
-            IntegrityError,
-            lambda: hydroshare.create_group('A Group')
-        )
 
         # test that the group is the same in the database
         self.assertEqual(
@@ -61,13 +56,13 @@ class TestUsersAPI(TestCase):
 
         self.assertIn(
             user1,
-            [a for a in GroupOwnership.objects.filter(group=a_group)],
+            [a.owner for a in GroupOwnership.objects.filter(group=a_group)],
             msg='user1 not listed in the group ownership list'
         )
 
         self.assertNotIn(
-            user1,
-            [a for a in GroupOwnership.objects.filter(group=a_group)],
+            user2,
+            [a.owner for a in GroupOwnership.objects.filter(group=a_group)],
             msg='user2 listed in the group ownership list'
         )
 
@@ -110,19 +105,6 @@ class TestUsersAPI(TestCase):
         self.assertEqual(
             User.objects.get(username='jefferson.r.heard@gmail.com'),
             user_without_username
-        )
-
-        # test attempt to add a duplicate user
-        self.assertRaises(
-            IntegrityError,
-            lambda: hydroshare.create_account(
-                'jeff@renci.org',
-                username='jeff',
-                first_name='Jefferson',
-                last_name='Heard',
-                superuser=False,
-                groups=[a_group]
-            )
         )
 
         self.assertIn(

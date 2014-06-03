@@ -17,18 +17,19 @@ class CreateOrListAccountsTest(ResourceTestCase):
     serializer = Serializer()
     def setUp(self):
         self.account_url_base = '/hsapi/accounts/'
+        self.sudo = hydroshare.create_account('info@hydroshare.org','hs','hydro','share',True,password='hs')
 
         self.api_client = TestApiClient()
+        self.api_client.client.login(username=self.sudo.username, password=self.sudo.password)
         
     def tearDown(self):
         User.objects.all().delete()
 
     def test_create_account(self):
-
         username = 'creator'    
         password = 'password'
         
-        post_data = CreateOrListAccounts.CreateAccountForm({
+        post_data_should_fail = CreateOrListAccounts.CreateAccountForm({
             'email': 'shaun@gmail.com',
             'username': username,
             'first_name': 'shaun',
@@ -37,14 +38,19 @@ class CreateOrListAccountsTest(ResourceTestCase):
             'superuser': True           
         })
 
-        try:
-            resp=self.api_client.post(self.account_url_base, data=post_data )
-        # returns TypeError:put() takes exactly 2 arguments (1 given)
-        except:
-            resp=self.api_client.put(self.account_url_base, data=post_data)
-        # returns HttpResponseForbidden
+        resp=self.api_client.post(self.account_url_base, data=post_data_should_fail)
+        self.assertHttpForbidden(resp)
 
+        post_data_should_succeed = CreateOrListAccounts.CreateAccountForm({
+            'email': 'shaun@gmail.com',
+            'username': username,
+            'first_name': 'shaun',
+            'last_name': 'livingston',
+            'password': password
+        })
+        resp=self.api_client.post(self.account_url_base, data=post_data_should_succeed)
         self.assertHttpCreated(resp)
+
         self.assertTrue(User.objects.filter(email='shaun@gmail.com').exists())
         self.assertTrue(User.objects.filter(username=username).exists())
         self.assertTrue(User.objects.filter(first_name='shaun').exists())
