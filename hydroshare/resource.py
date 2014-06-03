@@ -313,6 +313,15 @@ def create_resource(
     else:
         raise NotImplementedError("Type {resource_type} does not exist".format(resource_type=resource_type))
 
+    if isinstance(owner, basestring):
+        owner_name = owner
+        if User.objects.filter(username=owner):
+            owner = User.objects.filter(username=owner)[0]
+        else:
+            owner = User.objects.filter(email=owner)[0]
+        if not owner:
+            raise ObjectDoesNotExist(owner_name)
+
     # create the resource
     resource = cls.objects.create(
         user=owner,
@@ -322,15 +331,6 @@ def create_resource(
     )
     for file in files:
         ResourceFile.objects.create(content_object=resource, resource_file=file)
-
-    if isinstance(owner, basestring):
-        owner_name = owner
-        if User.objects.filter(username=owner):
-            owner = User.objects.filter(username=owner)
-        else:
-            owner = User.objects.filter(email=owner)
-        if not owner:
-            raise ObjectDoesNotExist(owner_name)
 
     resource.view_users.add(owner)
     resource.edit_users.add(owner)
@@ -429,9 +429,9 @@ def update_resource(
         if isinstance(owner, basestring):
             owner_name = owner
             if User.objects.filter(username=owner):
-                owner = User.objects.filter(username=owner)
+                owner = User.objects.filter(username=owner)[0]
             else:
-                owner = User.objects.filter(email=owner)
+                owner = User.objects.filter(email=owner)[0]
             if not owner:
                 raise ObjectDoesNotExist(owner_name)
         resource.view_users.add(owner)
