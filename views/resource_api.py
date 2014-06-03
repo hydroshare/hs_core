@@ -2,8 +2,9 @@ from __future__ import absolute_import
 import arrow
 
 from django import forms
+from django.core.exceptions import ObjectDoesNotExist
 from django.contrib.auth.models import Group, User
-from django.http import HttpResponse, HttpResponseRedirect
+from django.http import HttpResponse, HttpResponseRedirect, Http404
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
 import json
@@ -496,7 +497,10 @@ class ResourceFileCRUD(View):
 
     def get_resource_file(self, pk, filename):
         authorize(self.request, pk, view=True)
-        f = hydroshare.get_resource_file(pk, filename)
+        try:
+            f = hydroshare.get_resource_file(pk, filename)
+        except ObjectDoesNotExist:
+            raise Http404
         return HttpResponseRedirect(f.resource_file.url, content_type='text/plain')
 
     def update_resource_file(self, pk, filename):

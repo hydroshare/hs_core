@@ -1,5 +1,5 @@
 ### resource API
-from django.core.exceptions import ObjectDoesNotExist, DoesNotExist
+from django.core.exceptions import ObjectDoesNotExist
 from django.core.files import File
 from django.core.files.uploadedfile import UploadedFile
 from django.contrib.auth.models import User
@@ -330,7 +330,7 @@ def create_resource(
         else:
             owner = User.objects.filter(email=owner)
         if not owner:
-            raise DoesNotExist(owner_name)
+            raise ObjectDoesNotExist(owner_name)
 
     resource.view_users.add(owner)
     resource.edit_users.add(owner)
@@ -433,7 +433,7 @@ def update_resource(
             else:
                 owner = User.objects.filter(email=owner)
             if not owner:
-                raise DoesNotExist(owner_name)
+                raise ObjectDoesNotExist(owner_name)
         resource.view_users.add(owner)
         resource.edit_users.add(owner)
         resource.owners.add(owner)

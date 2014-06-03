@@ -1,12 +1,37 @@
 
 
+from . import utils
+from mezzanine.generic.models import Rating, ThreadedComment
+from django.core.exceptions import ObjectDoesNotExist
+
 # social API
 
-def endorse_resource(name):
+def endorse_resource(resource_short_id, user, endorse=True):
     """
-    NOT IN API DOC
+    Add +1 ratings to a resource if the user has not already done so
+
+    :param resource_short_id: short_id of the resource to be endorsed
+    :param user: The user id or username or user instance for the user who is endorsing
+    :param endorse: True for a +1.  False to remove any previous endorsement.
     """
-    raise NotImplemented()
+    res = utils.get_resource_by_shortkey(resource_short_id)
+    user = utils.user_from_id(user)
+    # first check this user has not already endorsed this resource
+    # then create a Rating object using the res and user
+    # when creating the Rating object set the value attribute to 1 (+1)
+    rating = Rating.objects.filter(object_pk=res.id, user=user).first()
+    # user has not endorsed this resource before
+    if not rating and endorse:
+        rating = Rating.objects.create(content_object=res, user=user, value=1)
+        return rating
+
+    # user has already endorsed this resource - can't endorse twice
+    elif rating and endorse:
+        return rating
+
+    # user wants to delete his/her endorsement
+    elif rating and not endorse:
+        rating.delete()
 
 
 def follow_user(name):
@@ -51,51 +76,81 @@ def delete_follow_group(name):
     raise NotImplemented()
 
 
-def annotate_resource(name):
+def comment_on_resource(resource_short_id, comment, user, in_reply_to=None):
     """
-    NOT IN API DOC
+    Add a comment to a resource or in reply to another comment of the resource.
+
+    :param resource_short_id: short_id of the resource to be commented
+    :param comment: The text of the comment to add (HTML is allowed)
+    :param user: The user id or username (use user_from_id(user) to resolve the object instance)
+    :param in_reply_to: Id of the comment to reply to (creates threaded comment)
+
+    :return: The comment instance (ThreadedComment)
     """
-    raise NotImplemented()
+
+    if not isinstance(comment, basestring):
+        raise ValueError("Comment was not found to be a string value")
+
+    if len(comment) == 0:
+        raise ValueError("No comment was provided")
+
+    res = utils.get_resource_by_shortkey(resource_short_id)
+    user = utils.user_from_id(user)
+    if in_reply_to:
+        try:
+            comment_to_reply = ThreadedComment.objects.get(pk=in_reply_to)
+            if comment_to_reply.content_object != res:
+                raise ValueError("Invalid in_reply_to comment")
+
+            # check if this comment has already been replied
+            if comment_to_reply.replied_to:
+                raise ValueError("Invalid in_reply_to comment")
+
+                # Note: current implementation allows a user to reply to his/her comment
+                # If needed we can prevent that
+
+        except ObjectDoesNotExist:
+            raise ObjectDoesNotExist(in_reply_to)
+
+    new_comment = ThreadedComment.objects.create(content_object=res, user=user, comment=comment)
+    if in_reply_to:
+        comment_to_reply.replied_to = new_comment
+        comment_to_reply.save()
+
+    return new_comment
 
 
-def endorse_comment(comment, resource, endorse=True, user=None):
+def endorse_comment(comment_id, resource_short_id, user, endorse=True):
     """
     Adds a +1 to the comment from the user.  Checks first to make sure the user has not +1'd previously.
 
-    :param comment: The comment ID (primary key)
+    :param comment_id: The comment ID (primary key) of the comment to be endorsed
+    :param resource_short_id: short_id of the resource (for user access authorization purposes)
+    :param user: The user endorsing the comment. user id, user name or user instance
     :param endorse: True for a +1.  False to remove any previous endorsement.
-    :param resource: The resource (for authorizaton purposes)
-    :param user: The user endorsing the comment
-    :return: The comment instance (ThreadedComment)
+    :return: The rating instance (Rating)
     """
+
+    resource = utils.get_resource_by_shortkey(resource_short_id)
+    user = utils.user_from_id(user)
+    comment_to_endorse = ThreadedComment.objects.get(pk=comment_id)
+
+    # check the comment belongs to the specified resource
+    if comment_to_endorse.content_object != resource:
+        raise ValueError("Comment does not belong to the specified resource")
 
     # first, make sure the user hasn't already added a rating to this comment.
+    rating = Rating.objects.filter(object_pk=comment_to_endorse.id, user=user).first()
 
-    # if they have and endorse is true, either throw an exception or just return without doing anything.
-
-    # if they have and endorse is false, delete the Rating object
-
-    # if they haven't and endorse is true, create a new rating object and add it to the threadedcomment instance,
-    # populating it with a "1".
-
-    # otehrwise throw an exception or just return (document which you do).
-
-    raise NotImplemented()
-
-
-def comment_on_resource(comment, resource, user=None, in_reply_to=None):
-    """
-    Add a comment to a resource or in reply to another comment.
-
-    :param comment: The text of the comment to add (HTML is allowed)
-    :param user: The user id or username (use user_from_id(user) to resovle the object instance)
-    :param in_reply_to: this should be a comment ID or a ThreadedComment instance (resolve this yourself)
-    :param resource: This should be a resource instance or shortkey.  get_resource_from_shortkey can be passed either.
-    :return: The comment instance (ThreadedComment)
-    """
-
-    # ThreadedComment.objects.create(...)
-
-    raise NotImplemented()
+    # if user has already endorsed and endorse is false, delete the Rating object
+    if rating and not endorse:
+        rating.delete()
+    # user can't endorse the same comment twice -just return the user's existing rating object
+    elif rating and endorse:
+        return rating
+    # if user has not endorsed this comment before and endorse is true then create a new rating object
+    elif not rating and endorse:
+        rating = Rating.objects.create(content_object=comment_to_endorse, user=user, value=1)
+        return rating
 
 
