@@ -98,24 +98,20 @@ def comment_on_resource(resource_short_id, comment, user, in_reply_to=None):
     user = utils.user_from_id(user)
     if in_reply_to:
         try:
-            comment_to_reply = ThreadedComment.objects.get(pk=in_reply_to)
-            if comment_to_reply.content_object != res:
+            comment_to_reply_to = ThreadedComment.objects.get(pk=in_reply_to)
+            if comment_to_reply_to.content_object != res:
                 raise ValueError("Invalid in_reply_to comment")
 
-            # check if this comment has already been replied
-            if comment_to_reply.replied_to:
-                raise ValueError("Invalid in_reply_to comment")
-
-                # Note: current implementation allows a user to reply to his/her comment
-                # If needed we can prevent that
-
+            # one is not allowed to reply to his/her own comment
+            if comment_to_reply_to.user == user:
+                raise ValueError("One can't reply to his/her own comment")
         except ObjectDoesNotExist:
             raise ObjectDoesNotExist(in_reply_to)
 
     new_comment = ThreadedComment.objects.create(content_object=res, user=user, comment=comment)
     if in_reply_to:
-        comment_to_reply.replied_to = new_comment
-        comment_to_reply.save()
+        new_comment.replied_to = comment_to_reply_to
+        new_comment.save()
 
     return new_comment
 
