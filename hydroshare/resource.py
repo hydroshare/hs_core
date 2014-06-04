@@ -313,14 +313,7 @@ def create_resource(
     else:
         raise NotImplementedError("Type {resource_type} does not exist".format(resource_type=resource_type))
 
-    if isinstance(owner, basestring):
-        owner_name = owner
-        if User.objects.filter(username=owner):
-            owner = User.objects.filter(username=owner)[0]
-        else:
-            owner = User.objects.filter(email=owner)[0]
-        if not owner:
-            raise ObjectDoesNotExist(owner_name)
+    owner = utils.user_from_id(owner)
 
     # create the resource
     resource = cls.objects.create(
@@ -425,15 +418,7 @@ def update_resource(
             )
 
     if 'owner' in kwargs:
-        owner = kwargs['owner']
-        if isinstance(owner, basestring):
-            owner_name = owner
-            if User.objects.filter(username=owner):
-                owner = User.objects.filter(username=owner)[0]
-            else:
-                owner = User.objects.filter(email=owner)[0]
-            if not owner:
-                raise ObjectDoesNotExist(owner_name)
+        owner = utils.user_from_id(kwargs['owner'])
         resource.view_users.add(owner)
         resource.edit_users.add(owner)
         resource.owners.add(owner)
