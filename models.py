@@ -81,7 +81,7 @@ class ResourcePermissionsMixin(Ownable):
          help_text='This is the set of Hydroshare Users who can edit the resource',
          null=True, blank=True)
 
-    edit_groups = models.ManyToManyField(User,
+    edit_groups = models.ManyToManyField(Group,
          related_name='group_editable_%(app_label)s_%(class)s',
          help_text='This is the set of Hydroshare Groups who can edit the resource',
          null=True, blank=True)
