@@ -354,7 +354,7 @@ def create_resource(
         ks = zip(*ks)[0]  # ignore whether something was created or not.  zip is its own inverse
 
         for k in ks:
-            ore
+            AssignedKeyword.objects.create(content_object=resource, keyword=k)
 
     if dublin_metadata:
         for d in dublin_metadata:
