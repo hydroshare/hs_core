@@ -354,7 +354,7 @@ def create_resource(
         ks = zip(*ks)[0]  # ignore whether something was created or not.  zip is its own inverse
 
         for k in ks:
-            AssignedKeyword.objects.create(content_object=resource, keyword=k)
+            ore
 
     if dublin_metadata:
         for d in dublin_metadata:
@@ -410,7 +410,7 @@ def update_resource(
     resource = utils.get_resource_by_shortkey(pk)
 
     if files:
-        ResourceFile.objects.filter(content_object=resource).delete()
+        ResourceFile.objects.filter(object_id=resource.id).delete()
         for file in files:
             ResourceFile.objects.create(
                 content_object=resource,
@@ -450,15 +450,15 @@ def update_resource(
             resource.view_groups.add(group)
 
     if keywords:
-        AssignedKeyword.objects.filter(content_object=resource).delete()
+        AssignedKeyword.objects.filter(object_pk=resource.id).delete()
         ks = [Keyword.objects.get_or_create(title=k) for k in keywords]
         ks = zip(*ks)[0]  # ignore whether something was created or not.  zip is its own inverse
 
         for k in ks:
-            AssignedKeyword.objects.create(content_object=resource, keyword=k)
+            AssignedKeyword.objects.create(object_pk=resource.id, keyword=k)
 
     if dublin_metadata:
-        QualifiedDublinCoreElement.objects.filter(content_object=resource).delete()
+        QualifiedDublinCoreElement.objects.filter(object_id=resource.id).delete()
         for d in dublin_metadata:
             QualifiedDublinCoreElement.objects.create(
                 term=d['term'],
@@ -555,15 +555,15 @@ def update_science_metadata(pk, dublin_metadata=None, keywords=None, **kwargs):
     resource = utils.get_resource_by_shortkey(pk)
 
     if keywords:
-        AssignedKeyword.objects.filter(content_object=resource).delete()
+        AssignedKeyword.objects.filter(object_pk=resource.id).delete()
         ks = [Keyword.objects.get_or_create(title=k) for k in keywords]
         ks = zip(*ks)[0]  # ignore whether something was created or not.  zip is its own inverse
 
         for k in ks:
-            AssignedKeyword.objects.create(content_object=resource, keyword=k)
+            AssignedKeyword.objects.create(object_pk=resource.id, keyword=k)
 
     if dublin_metadata:
-        QualifiedDublinCoreElement.objects.filter(content_object=resource).delete()
+        QualifiedDublinCoreElement.objects.filter(object_id=resource.id).delete()
         for d in dublin_metadata:
             QualifiedDublinCoreElement.objects.create(
                 term=d['term'],
@@ -573,7 +573,7 @@ def update_science_metadata(pk, dublin_metadata=None, keywords=None, **kwargs):
             )
 
     if kwargs:
-        for field, value in kwargs:
+        for field, value in kwargs.items():
             setattr(resource, field, value)
         resource.save()
 
