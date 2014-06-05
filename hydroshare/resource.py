@@ -455,7 +455,7 @@ def update_resource(
         ks = zip(*ks)[0]  # ignore whether something was created or not.  zip is its own inverse
 
         for k in ks:
-            AssignedKeyword.objects.create(object_pk=resource.id, keyword=k)
+            AssignedKeyword.objects.create(content_object=resource.id, keyword=k)
 
     if dublin_metadata:
         QualifiedDublinCoreElement.objects.filter(object_id=resource.id).delete()
@@ -560,7 +560,7 @@ def update_science_metadata(pk, dublin_metadata=None, keywords=None, **kwargs):
         ks = zip(*ks)[0]  # ignore whether something was created or not.  zip is its own inverse
 
         for k in ks:
-            AssignedKeyword.objects.create(object_pk=resource.id, keyword=k)
+            AssignedKeyword.objects.create(content_object=resource.id, keyword=k)
 
     if dublin_metadata:
         QualifiedDublinCoreElement.objects.filter(object_id=resource.id).delete()
