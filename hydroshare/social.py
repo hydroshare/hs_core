@@ -3,7 +3,8 @@
 from . import utils
 from mezzanine.generic.models import Rating, ThreadedComment
 from django.core.exceptions import ObjectDoesNotExist
-
+from django.contrib.contenttypes.models import ContentType
+from hs_core.models import GenericResource
 # social API
 
 def endorse_resource(resource_short_id, user, endorse=True):
@@ -19,7 +20,8 @@ def endorse_resource(resource_short_id, user, endorse=True):
     # first check this user has not already endorsed this resource
     # then create a Rating object using the res and user
     # when creating the Rating object set the value attribute to 1 (+1)
-    rating = Rating.objects.filter(object_pk=res.id, user=user).first()
+    resource_type = ContentType.objects.get_for_model(GenericResource)
+    rating = Rating.objects.filter(content_type=resource_type, object_pk=res.id, user=user).first()
     # user has not endorsed this resource before
     if not rating and endorse:
         rating = Rating.objects.create(content_object=res, user=user, value=1)
@@ -136,7 +138,8 @@ def endorse_comment(comment_id, resource_short_id, user, endorse=True):
         raise ValueError("Comment does not belong to the specified resource")
 
     # first, make sure the user hasn't already added a rating to this comment.
-    rating = Rating.objects.filter(object_pk=comment_to_endorse.id, user=user).first()
+    comment_type = ContentType.objects.get_for_model(ThreadedComment)
+    rating = Rating.objects.filter(content_type=comment_type, object_pk=comment_to_endorse.id, user=user).first()
 
     # if user has already endorsed and endorse is false, delete the Rating object
     if rating and not endorse:
