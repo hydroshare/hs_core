@@ -153,3 +153,37 @@ def endorse_comment(comment_id, resource_short_id, user, endorse=True):
         return rating
 
 
+def get_comments(resource_short_id):
+    """
+    Get the list of comment for a resource identified by pid.
+
+    :param resource_short_id: short_id of the resource (for user access authorization purposes)
+
+    """
+
+    # get resource instance
+    resource = utils.get_resource_by_shortkey(resource_short_id)
+
+    # get all comments objects of the resource
+    comments = ThreadedComment.objects.filter(object_pk=resource.pk)
+
+    return comments
+
+
+def get_endorsement(for_object):
+    """
+    Get the list of rating objects for a resource or a comment object.
+
+    :param for_object an object of a resource or a comment
+
+    """
+
+    if isinstance(for_object, GenericResource):
+        resource_type = ContentType.objects.get_for_model(GenericResource)
+        endorsement = Rating.objects.filter(content_type=resource_type, object_pk=for_object.id)
+
+    elif isinstance(for_object, ThreadedComment):
+        comment_type = ContentType.objects.get_for_model(ThreadedComment)
+        endorsement = Rating.objects.filter(content_type=comment_type, object_pk=for_object.id)
+
+    return endorsement
