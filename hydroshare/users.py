@@ -592,7 +592,7 @@ def get_resource_list(
         raise NotImplemented("Returning the full resource list is not supported.  at least limit by count")
 
     resource_types = get_resource_types()
-    queries = dict((r, []) for r in resource_types)
+    queries = dict((el, []) for el in resource_types)
 
     for t, q in queries.items():
         if published:
