@@ -2,6 +2,9 @@ from django.contrib.contenttypes import generic
 from django.contrib.auth.models import User, Group
 from django.contrib.contenttypes.models import ContentType
 from django.db import models
+from django.db.models.signals import post_save
+from django.dispatch import receiver
+from django import forms
 from django.utils.timezone import now
 from mezzanine.pages.models import Page, RichText
 from mezzanine.pages.page_processors import processor_for
@@ -11,6 +14,8 @@ from mezzanine.generic.fields import CommentsField
 from mezzanine.conf import settings as s
 import os.path
 # from dublincore.models import QualifiedDublinCoreElement
+from dublincore import models as dc
+
 
 class GroupOwnership(models.Model):
     group = models.ForeignKey(Group)
@@ -191,6 +196,7 @@ class AbstractResource(ResourcePermissionsMixin):
                            help_text='Permanent identifier. Never changes once it\'s been set.')
     comments = CommentsField()
 
+
     def extra_capabilites(self):
         """This is not terribly well defined yet, but should return at the least a JSON serializable object of URL
         endpoints where extra self-describing services exist and can be queried by the user in the form of
@@ -254,3 +260,22 @@ def resource_listing_processor(request, page):
     viewable_resources = list(GenericResource.objects.filter(public=True))
 
     return locals()
+
+@receiver(post_save)
+def resource_creation_signal_handler(sender, instance, created, **kwargs):
+    """Create initial dublin core elements"""
+    if isinstance(AbstractResource, sender):
+        if created:
+            instance.dublin_metadata.create(term='T', content=instance.title)
+            instance.dublin_metadata.create(term='CR', content=instance.user.username)
+            if instance.last_updated_by:
+                instance.dublin_metadata.create(term='CN', content=instance.last_updated_by.username)
+            instance.dublin_metadata.create(term='DT', content=instance.created)
+            if instance.content:
+                instance.dublin_metadata.create(term='AB', content=instance.content)
+        else:
+            resource_update_signal_handler(sender, instance, created, **kwargs)
+
+
+def resource_update_signal_handler(sender, instance, created, **kwargs):
+    """Add dublin core metadata based on the person who just updated the resource. Handle publishing too..."""
