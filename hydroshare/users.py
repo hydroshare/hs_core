@@ -540,7 +540,9 @@ def get_resource_list(
         from_date=None, to_date=None,
         start=None, count=None,
         keywords=None, dc=None,
-        full_text_search=None):
+        full_text_search=None,
+        published=False,
+        edit_permission=False):
     """
     Return a list of pids for Resources that have been shared with a group identified by groupID.
     REST URL:  GET /resourceList?groups__contains={groupID}
@@ -593,13 +595,26 @@ def get_resource_list(
     queries = dict((el, []) for el in resource_types)
 
     for t, q in queries.items():
-        if group:
-            group = group_from_id(group)
-            queries[t].append(Q(edit_groups=group) | Q(view_groups=group))
+        if published:
+            queries[t].append(Q(doi__isnull=False))
 
-        if user:
-            user = user_from_id(user)
-            queries[t].append(Q(edit_users=user) | Q(view_users=user) | Q(owners=user))
+        if edit_permission:
+            if group:
+                group = group_from_id(group)
+                queries[t].append(Q(edit_groups=group))
+
+            if user:
+                user = user_from_id(user)
+                queries[t].append(Q(edit_users=user) | Q(owners=user))
+        else:
+            if group:
+                group = group_from_id(group)
+                queries[t].append(Q(edit_groups=group) | Q(view_groups=group))
+
+            if user:
+                user = user_from_id(user)
+                queries[t].append(Q(edit_users=user) | Q(view_users=user) | Q(owners=user))
+
 
         if from_date and to_date:
             queries[t].append(Q(updated__range=(from_date, to_date)))
@@ -609,17 +624,19 @@ def get_resource_list(
             queries[t].append(Q(updated__le=to_date))
 
         if keywords:
-            queries[t].append(Q(keywords=keywords))
+            queries[t].append(Q(keywords__name__in=keywords))
 
         if dc:
             for lookup in dc:
                 for term, value in lookup.items():
-                    term = 'dublin_metadata__' + term
-                    queries[t].append(Q(**{term: value}))
+                    queries[t].append(Q(dublin_metadata__term=term) & Q(dublin_metadata__content__contains=value))
 
-        queries[t] = t.objects.filter(queries[t])
+        flt = t.objects.all()
+        for q in queries[t]:
+            flt = flt.filter(q)
 
         if full_text_search:
-            queries[t] = t.objects.search(full_text_search)
+            flt = flt.search(full_text_search)
 
+        queries[t] = flt
     return queries
