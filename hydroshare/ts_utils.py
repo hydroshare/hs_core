@@ -6,13 +6,12 @@ from django.http import Http404
 from xml.sax._exceptions import SAXParseException
 
 def sites_from_soap(wsdl_url, locations=[':']):
+    """
+    Note: locations (a list) is given by CUAHSI WOF standard
 
-    '''
-Note: locations (a list) is given by CUAHSI WOF standard 
-
-returns:
-a list of site names and codes at the given locations 
-    '''
+    returns:
+    a list of site names and codes at the given locations
+    """
 
     if not wsdl_url.endswith('.asmx?WSDL'):
         raise Http404("The correct url format ends in '.asmx?WSDL'.")
@@ -32,10 +31,10 @@ a list of site names and codes at the given locations
         raise Http404("Method 'GetSites' not found")
     except WebFault:
         raise Http404('This service does not support an all sites search. \
-        Please provide a list of locations')  # ought to be a 400, but no page implemented for that
+Please provide a list of locations')  # ought to be a 400, but no page implemented for that
     except:
         raise Http404("Sorry, but we've encountered an unexpected error. This is most likely \
-        due to incorrect formatting in the web service data.")
+        due to incorrect formatting in the web service response.")
     try:
         ts_element = etree.XML(response)
 
@@ -47,24 +46,23 @@ a list of site names and codes at the given locations
                 site_codes.append(site[0][1].text)
     except:
         return "Parsing error: The Data in the WSDL Url '{0}' was not correctly formatted \
-        according to the WaterOneFlow standard given at 'http://his.cuahsi.org/wofws.html#waterml'.".format(wsdl_url)
+according to the WaterOneFlow standard given at 'http://his.cuahsi.org/wofws.html#waterml'.".format(wsdl_url)
     ret = dict(zip(site_names, site_codes))
     return ret
 
 
 def time_series_from_soap(wsdl_url, **kwargs):
-    '''
-keyword arguments are given by CAUHSI WOF standard :
-site_name_or_code = location
-variable
-startDate
-endDate
-authToken
+    """
+    keyword arguments are given by CAUHSI WOF standard :
+    site_name_or_code = location
+    variable
+    startDate
+    endDate
+    authToken
 
-
-returns:
-a string containing a WaterML file with location metadata and data
-    '''
+    returns:
+    a string containing a WaterML file with location metadata and data
+    """
     var = ':' + kwargs['variable']
     s_d = kwargs.get('startDate', '')
     e_d = kwargs.get('endDate', '')
@@ -91,12 +89,12 @@ a string containing a WaterML file with location metadata and data
             Http404('Invalid site name')
         except WebFault:
             raise Http404('One or more of your parameters may be incorrect. \
-            Location and Variable are not optional, and case sensitive')  # ought to be a 400, but no page implemented for that
+Location and Variable are not optional, and case sensitive')  # ought to be a 400, but no page implemented for that
         except:
             raise Http404("Sorry, but we've encountered an unexpected error")
     except:
         raise Http404("Sorry, but we've encountered an unexpected error. This is most likely \
-        due to incorrect formatting in the web service data.")
+due to incorrect formatting in the web service format.")
     try:
         time_series = etree.XML(response)[1]
         
@@ -105,5 +103,5 @@ a string containing a WaterML file with location metadata and data
 
     except:
         return "Parsing error: The Data in the WSDL Url '{0}' was not correctly formatted \
-        according to the WaterOneFlow standard given at 'http://his.cuahsi.org/wofws.html#waterml'.".format(wsdl_url)
+according to the WaterOneFlow standard given at 'http://his.cuahsi.org/wofws.html#waterml'.".format(wsdl_url)
 
