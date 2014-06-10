@@ -10,7 +10,7 @@ from hs_core.models import GenericResource
 from unittest import TestCase
 
 
-class TestGetEndorsement(TestCase):
+class TestGetEndorsements(TestCase):
     def setUp(self):
         # create 2 users
         self.user1 = hydroshare.create_account(
@@ -54,29 +54,43 @@ class TestGetEndorsement(TestCase):
         User.objects.all().delete()
         GenericResource.objects.all().delete()
 
-    def test_get_endorsement(self):
+    def test_get_endorsements(self):
 
         # test get the endorsement of resource
         self.assertEqual(
-            len(hydroshare.get_endorsement(self.res)), 2,
-            'Rating number for resource is not correct')
+            len(hydroshare.get_endorsements(self.res)), 2,
+            'Rating number for resource is not correct'
+        )
 
         # test the user endorse on resource
         self.assertListEqual(
-            [hydroshare.get_endorsement(self.res)[0].user, hydroshare.get_endorsement(self.res)[1].user],
+            [hydroshare.get_endorsements(self.res)[0].user, hydroshare.get_endorsements(self.res)[1].user],
             [self.user2, self.user1],
             'Resource Rating user is not correct'
         )
 
+        # test the endorsement points to the correct resource
+        self.assertEqual(
+            hydroshare.get_endorsements(self.res)[0].content_object,
+            self.res,
+            'The endorsement are not pointing to the correct resource'
+        )
+
         # test get the endorsement of comment
         self.assertEqual(
-            len(hydroshare.get_endorsement(self.comment)), 2,
+            len(hydroshare.get_endorsements(self.comment)), 2,
             'Rating number for comment is not correct')
 
         # test the user endorse on comment
         self.assertListEqual(
-            [hydroshare.get_endorsement(self.comment)[0].user, hydroshare.get_endorsement(self.comment)[1].user],
+            [hydroshare.get_endorsements(self.comment)[0].user, hydroshare.get_endorsements(self.comment)[1].user],
             [self.user1, self.user2],
             'Comment Rating user is not correct'
         )
 
+        # test the endorsement points to the correct comment
+        self.assertEqual(
+            hydroshare.get_endorsements(self.comment)[0].content_object,
+            self.comment,
+            'The endorsement are not pointing to the correct comment'
+        )

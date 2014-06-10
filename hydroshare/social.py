@@ -170,7 +170,7 @@ def get_comments(resource_short_id):
     return comments
 
 
-def get_endorsement(for_object):
+def get_endorsements(for_object):
     """
     Get the list of rating objects for a resource or a comment object.
 
@@ -180,10 +180,10 @@ def get_endorsement(for_object):
 
     if isinstance(for_object, GenericResource):
         resource_type = ContentType.objects.get_for_model(GenericResource)
-        endorsement = Rating.objects.filter(content_type=resource_type, object_pk=for_object.id)
+        endorsements = Rating.objects.filter(content_type=resource_type, object_pk=for_object.id)
 
     elif isinstance(for_object, ThreadedComment):
         comment_type = ContentType.objects.get_for_model(ThreadedComment)
-        endorsement = Rating.objects.filter(content_type=comment_type, object_pk=for_object.id)
+        endorsements = Rating.objects.filter(content_type=comment_type, object_pk=for_object.id)
 
-    return endorsement
+    return endorsements

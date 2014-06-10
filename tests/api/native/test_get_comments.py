@@ -60,16 +60,20 @@ class TestGetComments(TestCase):
         GenericResource.objects.all().delete()
 
     def test_get_comments(self):
-        res_comment = hydroshare.get_comments(self.res.short_id)
+        res_comments = hydroshare.get_comments(self.res.short_id)
 
         # test the length of the comments
-        self.assertEqual(len(res_comment), 3, 'Do not get all the comments')
+        self.assertEqual(len(res_comments), 3, 'Do not get all the comments')
 
         # test if the comments has the corresponding user
-        self.assertEqual(res_comment[0].user, self.user2, 'The user info of the comment is not correct')
+        self.assertEqual(res_comments[0].user, self.user2, 'The user info of the comment is not correct')
 
         # test if the comment text match
-        self.assertEqual(res_comment[0].comment, self.comment_1.comment, 'The comment text is not correct')
+        self.assertEqual(res_comments[0].comment, self.comment_1.comment, 'The comment text is not correct')
 
         # test comment relationship
-        self.assertEqual(res_comment[0].id, res_comment[1].replied_to_id, 'The comment relationship is not correct')
+        self.assertEqual(res_comments[0].id, res_comments[1].replied_to_id, 'The comment relationship is not correct')
+
+        # test comment is pointing to the correct resource
+        self.assertEqual(res_comments[2].content_object, self.res, 'The comment does not point to the right resource')
+
