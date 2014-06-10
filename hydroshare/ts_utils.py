@@ -51,6 +51,43 @@ a list of site names and codes at the given locations
     ret = dict(zip(site_names, site_codes))
     return ret
 
+def site_info_from_soap(wsdl_url, **kwargs):
+    site = ':' + kwargs['site']
+
+    if not wsdl_url.endswith('.asmx?WSDL'):
+        raise Http404("The correct url format ends in '.asmx?WSDL'.")
+    try:
+         client = Client(wsdl_url)
+    except TransportError:
+        raise Http404('Url not found')
+    except ValueError:
+        raise Http404('Invalid url')  # ought to be a 400, but no page implemented for that
+    except SAXParseException:
+        raise Http404("The correct url format ends in '.asmx?WSDL'.")
+    except:
+        raise Http404("Sorry, but we've encountered an unexpected error.")
+    try:
+        response = client.service.GetSiteInfo(site)
+    except MethodNotFound:
+        raise Http404("Method 'GetValues' not found")
+
+    try:
+        response = client.service.GetSiteInfo(site)
+        root = etree.XML(response)
+        variables = []
+
+        for element in root.iter():
+            if isinstance(element.tag, basestring):
+                brackLoc = element.tag.index('}')  #The namespace in the tag is enclosed in {}.
+                tag = element.tag[brackLoc+1:]     #Takes only actual tag, no namespace
+                if 'variableName' in tag:
+                     variables.append(element.text)
+        return variables
+
+    except:
+        return "Parsing error: The Data in the WSDL Url '{0}' was not correctly formatted \
+        according to the WaterOneFlow standard given at 'http://his.cuahsi.org/wofws.html#waterml'.".format(wsdl_url)
+
 
 def time_series_from_soap(wsdl_url, **kwargs):
     '''

@@ -1,10 +1,9 @@
 import unittest
 from hs_core.hydroshare import get_resource_by_shortkey
-from hs_core.hydroshare.resource import add_resource_files, create_resource
-from hs_core.models import GenericResource
+from hs_core.hydroshare.resource import add_resource_files, create_resource, get_resource_map
 from django.contrib.auth.models import User
 from hs_core.models import ResourceFile
-
+from hs_core.models import GenericResource
 
 class testAddResourceFiles(unittest.TestCase):
     def setUp(self):
