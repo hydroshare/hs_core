@@ -3,12 +3,11 @@ import bagit
 from django.core.files import File
 import os
 import shutil
-from hs_core.models import Bags
+from hs_core.models import Bags, ResourceFile
 from mezzanine.conf import settings
 import importlib
 import zipfile
 from foresite import *
-from rdflib import URIRef, Namespace
 
 def make_zipfile(output_filename, source_dir):
     """
@@ -64,6 +63,10 @@ def create_bag(resource):
         bundle = serializer.build_bundle(obj=resource)             # build a serializable bundle out of the resource
         out.write(serializer.serialize(None, serializer.full_dehydrate(bundle), 'application/json'))    
 
+    hs_res_url = os.path.join('http://hydroshare.org/resources', resource.title)
+    metadata_url = os.path.join(hs_res_url, 'resourcemetadata.json')
+    res_map_url = os.path.join(hs_res_url, 'resourcemap.xml')
+
     ##make the resource map:
         
     utils.namespaces['hsterms'] = Namespace('http://hydroshare.org/hydroshare/terms/')
@@ -71,41 +74,46 @@ def create_bag(resource):
     utils.namespaces['citoterms'] = Namespace('http://purl.org/spar/cito/')
     utils.namespaceSearchOrder.append('citoterms')
 
-    ag_uri = bagit_path + '/resourcemap.xml#aggregation'
-    a = Aggregation(ag_uri)
+    ag_url = os.path.join(hs_res_url, 'resourcemap.xml#aggregation')
+    a = Aggregation(ag_url)
 
     #Set properties of the aggregation
     a._dc.title = resource.title
     a._dcterms.created = arrow.get(resource.updated).format("YYYY.MM.DD.HH.mm.ss")
     a._hsterms.hydroshareResourceType = resource._meta.object_name
-    a._ore.isDocumentedBy = bagit_path + '/resourcemetadata.json'
-    a._ore.isDescribedBy = bagit_path + '/resourcemap.xml'
+    a._ore.isDocumentedBy = metadata_url
+    a._ore.isDescribedBy = res_map_url
 
     #Create a description of the metadata document that describes the whole resource and add it to the aggregation
-    resMetaFile = AggregatedResource(bagit_path + '/resourcemetadata.json')
+    resMetaFile = AggregatedResource(metadata_url)
     resMetaFile._dc.title = "Dublin Core science metadata document describing the HydroShare resource"
-    resMetaFile._citoterms.documents = ag_uri
-    resMetaFile._dcterms.isAggregatedBy = ag_uri
+    resMetaFile._citoterms.documents = ag_url
+    resMetaFile._dcterms.isAggregatedBy = ag_url
     resMetaFile._dcterms.format = "application/rdf+xml"
 
     #Create a description of the content file and add it to the aggregation
-    resFile = AggregatedResource(contents_path + '/' + resource.title)
-    resFile._dcterms.isAggregatedBy = ag_uri
-    resFile._dcterms.format = "text/csv"
+    files = ResourceFile.objects.filter(object_id=resource.id)
+    resFiles = []
+    for n, f in enumerate(files):
+        filename = os.path.basename(f.resource_file.name)
+        resFiles.append(AggregatedResource(os.path.join(contents_path, filename)))
+        resFiles[n]._dcterms.isAggregatedBy = ag_url
+        resFiles[n]._dcterms.format = "text/csv"   # change eventually
 
     #Add the resource files to the aggregation
     a.add_resource(resMetaFile)
-    a.add_resource(resFile)
+    for f in resFiles:
+        a.add_resource(f)
 
     #Register a serializer with the aggregation.  The registration creates a new ResourceMap, which needs a URI
     serializer = RdfLibSerializer('xml')
-    resMap = a.register_serialization(serializer, bagit_path + '/resourcemap.xml')
+    resMap = a.register_serialization(serializer, res_map_url)
     resMap._dcterms.identifier = "resource_identifier"
 
     #Fetch the serialization
     remdoc = a.get_serialization()
 
-    with open(bagit_path + '/resourcemap.xml', 'w') as out:            
+    with open(bagit_path + '/resourcemap.xml', 'w') as out:
          out.write(remdoc.data)
 
     bagit.make_bag(bagit_path, checksum=['md5'], bag_info={
