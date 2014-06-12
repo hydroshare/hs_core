@@ -319,7 +319,9 @@ def create_resource(
     resource = cls.objects.create(
         user=owner,
         creator=owner,
-            title=title,
+        title=title,
+        last_changed_by=owner,
+        in_menus=[],
         **kwargs
     )
     for file in files:

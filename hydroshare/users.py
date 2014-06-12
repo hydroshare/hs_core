@@ -180,9 +180,11 @@ def create_account(
             last_name=last_name,
             password=password,
         )
+
+    u.is_staff = True
     if not active:
         u.is_active=False
-        u.save()
+    u.save()
 
     u.groups = groups
     ApiKey.objects.get_or_create(user=u)
@@ -542,7 +544,9 @@ def get_resource_list(
         keywords=None, dc=None,
         full_text_search=None,
         published=False,
-        edit_permission=False):
+        edit_permission=False,
+        public=False
+):
     """
     Return a list of pids for Resources that have been shared with a group identified by groupID.
     REST URL:  GET /resourceList?groups__contains={groupID}
@@ -588,7 +592,7 @@ def get_resource_list(
     """
     from django.db.models import Q
 
-    if not any((group, user, from_date, to_date, start, count, keywords, dc, full_text_search)):
+    if not any((group, user, from_date, to_date, start, count, keywords, dc, full_text_search, public)):
         raise NotImplemented("Returning the full resource list is not supported.  at least limit by count")
 
     resource_types = get_resource_types()
@@ -613,7 +617,7 @@ def get_resource_list(
 
             if user:
                 user = user_from_id(user)
-                queries[t].append(Q(edit_users=user) | Q(view_users=user) | Q(owners=user))
+                queries[t].append(Q(edit_users=user) | Q(view_users=user) | Q(owners=user) | Q(public=True))
 
 
         if from_date and to_date:
@@ -623,20 +627,36 @@ def get_resource_list(
         elif to_date:
             queries[t].append(Q(updated__le=to_date))
 
-        if keywords:
-            queries[t].append(Q(keywords__name__in=keywords))
+        #if keywords:
+        #    queries[t].append(Q(keywords__title__in=keywords))
 
-        if dc:
-            for lookup in dc:
-                for term, value in lookup.items():
-                    queries[t].append(Q(dublin_metadata__term=term) & Q(dublin_metadata__content__contains=value))
+        #if dc:
+        #    for lookup in dc:
+        #        queries[t].append(Q(dublin_metadata__term=lookup['term']) & Q(dublin_metadata__content__contains=lookup['content']))
 
         flt = t.objects.all()
         for q in queries[t]:
             flt = flt.filter(q)
 
+        if public:
+            flt = flt.filter(public=True)
+
         if full_text_search:
             flt = flt.search(full_text_search)
 
         queries[t] = flt
+
+        if keywords:
+            for k in keywords:
+                queries[t] = flt.filter(keywords_string__contains=k)
+
+        if dc:
+            for metadata in dc:
+                if metadata['content']:
+                    queries[t] = filter(lambda r: r.dublin_metadata.filter(term=metadata['term']).exists(), queries[t])
+                    queries[t] = filter(lambda r: r.dublin_metadata.filter(content=metadata['content']).exists(), queries[t])
+
+
+
+
     return queries

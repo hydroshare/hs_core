@@ -279,3 +279,11 @@ def resource_creation_signal_handler(sender, instance, created, **kwargs):
 
 def resource_update_signal_handler(sender, instance, created, **kwargs):
     """Add dublin core metadata based on the person who just updated the resource. Handle publishing too..."""
+
+@receiver(post_save, sender=User)
+def user_creation_signal_handler(sender, instance, created, **kwargs):
+    if created:
+        if not instance.is_staff:
+            instance.is_staff = True
+            instance.save()
+            instance.groups.add(Group.objects.get(name='Hydroshare Author'))

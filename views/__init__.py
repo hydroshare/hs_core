@@ -1,8 +1,17 @@
 from __future__ import absolute_import
+from collections import defaultdict
+from django.contrib.auth import login, authenticate
+from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import Group, User
+from django.contrib.sites.models import Site
 from django.http import HttpResponseRedirect, HttpResponse
+from django.shortcuts import get_object_or_404, render_to_response
+from django.template import RequestContext
+from django.utils.timezone import now
 from mezzanine.conf import settings
 from django import forms
+from mezzanine.generic.models import Keyword
+from hs_core import hydroshare
 from hs_core.hydroshare import get_resource_list
 from hs_core.hydroshare.utils import get_resource_by_shortkey, resource_modified
 from .utils import authorize
@@ -25,6 +34,15 @@ def short_url(request, *args, **kwargs):
 
     m = get_resource_by_shortkey(shortkey)
     return HttpResponseRedirect(m.get_absolute_url())
+
+def verify(request, *args, **kwargs):
+    uid = int(kwargs['pk'])
+    u = User.objects.get(pk=uid)
+    if not u.is_active:
+        u.is_active=True
+        u.save()
+        u.groups.add(Group.objects.get(name="Hydroshare Author"))
+        return HttpResponseRedirect('/account/update/')
 
 
 def add_file_to_resource(request, *args, **kwargs):
@@ -56,6 +74,7 @@ def add_metadata_term(request, shortkey, *args, **kwargs):
     resource_modified(res, request.user)
     return HttpResponseRedirect(request.META['HTTP_REFERER'])
 
+
 def delete_file(request, shortkey, f, *args, **kwargs):
     res, _, _ = authorize(request, shortkey, edit=True, full=True, superuser=True)
     fl = res.files.filter(pk=int(f)).first()
@@ -65,11 +84,10 @@ def delete_file(request, shortkey, f, *args, **kwargs):
     return HttpResponseRedirect(request.META['HTTP_REFERER'])
 
 
-def delete_resource(request, shortkey, f, *args, **kwargs):
+def delete_resource(request, shortkey, *args, **kwargs):
     res, _, _ = authorize(request, shortkey, edit=True, full=True, superuser=True)
     for fl in res.files.all():
         fl.resource_file.delete()
-        fl.delete()
     for bag in res.bags.all():
         bag.bag.delete()
         bag.delete()
@@ -115,8 +133,9 @@ def verify_captcha(request):
     f = CaptchaVerifyForm(request.POST)
     if f.is_valid():
         params = dict(f.cleaned_data)
-        params['privatekey'] = getattr(settings, 'RECAPTCHA_PRIVATE_KEY', '6LegBPMSAAAAADZZagdp5oW7M474j_iXsnBSSfhy')
+        params['privatekey'] = getattr(settings, 'RECAPTCHA_PRIVATE_KEY', '6LdNC_USAAAAADNdzytMK2-qmDCzJcgybFkw8Z5x')
         params['remoteip'] = request.META['REMOTE_ADDR']
+        # return HttpResponse('true', content_type='text/plain')
         resp = requests.post('http://www.google.com/recaptcha/api/verify', params=params)
         lines = resp.text.split('\n')
         if lines[0].startswith('false'):
@@ -126,7 +145,19 @@ def verify_captcha(request):
 
 @processor_for('resend-verification-email')
 def resend_verification_email(request, page):
-    pass # FIXME not implemented
+    u = get_object_or_404(User, username=request.GET['user'])
+    try:
+        u.email_user(
+            'Please verify your new Hydroshare account.',
+            """
+This is an automated email from Hydroshare.org. If you requested a Hydroshare account, please
+go to http://{domain}/verify/{uid}/ and verify your account.
+""".format(
+            domain=Site.objects.get_current().domain,
+            uid=u.pk
+        ))
+    except:
+        pass # FIXME should log this instead of ignoring it.
 
 
 class FilterForm(forms.Form):
@@ -141,26 +172,39 @@ class FilterForm(forms.Form):
 
 @processor_for('my-resources')
 def my_resources(request, page):
+#    if not request.user.is_authenticated():
+#        return HttpResponseRedirect('/accounts/login/')
+
     frm = FilterForm(data=request.REQUEST)
     if frm.is_valid():
-        user = frm.cleaned_data['user'] or request.user
+        user = frm.cleaned_data['user'] or (request.user if request.user.is_authenticated() else None)
         edit_permission = frm.cleaned_data['edit_permission'] or False
         published = frm.cleaned_data['published'] or False
         start = frm.cleaned_data['start'] or 0
         from_date = frm.cleaned_data['from_date'] or None
+        keywords = [k.strip() for k in request.REQUEST['keywords'].split(',')] if request.REQUEST.get('keywords', None) else None
+        public = not request.user.is_authenticated()
+        dcterms = defaultdict(dict)
+        for k, v in filter(lambda (x, y): x.startswith('dc'), request.REQUEST.items()):
+            num = int(k[-1])
+            vtype = k[2:-1]
+            dcterms[num][vtype] = v
 
         res = set()
         for lst in get_resource_list(
-                user=user,
-                count=20,
-                published=published,
-                edit_permission=edit_permission,
-                start=start,
-                from_date=from_date
+            user=user,
+            count=20,
+            published=published,
+            edit_permission=edit_permission,
+            start=start,
+            from_date=from_date,
+            dc=list(dcterms.values()) if dcterms else None,
+            keywords=keywords if keywords else None,
+            public=public
         ).values():
             res = res.union(lst)
 
-        res = sorted(list(res), lambda x: x.title)
+        res = sorted(list(res), key=lambda x: x.title)
         return {
             'resources': res,
             'first': start,
@@ -256,9 +300,52 @@ def add_dublin_core(request, page):
         'view_groups' : set(cm.view_groups.all()),
         'edit_users' : set(cm.edit_users.all()),
         'edit_groups' : set(cm.edit_groups.all()),
-
     }
 
+
+class CreateResourceForm(forms.Form):
+    title = forms.CharField(required=True)
+    creators = forms.CharField()
+    contributors = forms.CharField()
+    abstract = forms.CharField()
+    keywords = forms.CharField()
+
+@login_required
+def create_resource(request, *args, **kwargs):
+    frm = CreateResourceForm(request.POST)
+    if frm.is_valid():
+
+        dcterms = [
+            { 'term' : 'T', 'qualifier' : None, 'content' : frm.cleaned_data['title'] },
+            { 'term' : 'AB', 'qualifier' : None, 'content' : frm.cleaned_data['abstract'] or frm.cleaned_data['title']},
+            { 'term' : 'DTS', 'qualifier' : None, 'content' : now().isoformat() }
+        ]
+        for cn in frm.cleaned_data['contributors'].split(','):
+            cn = cn.strip()
+            dcterms.append({'term' : 'CN', 'qualifier' : None, 'content' : cn})
+        for cr in frm.cleaned_data['creators'].split(','):
+            cr = cr.strip()
+            dcterms.append({'term' : 'CR', 'qualifier' : None, 'content' : cr})
+
+        res = hydroshare.create_resource(
+            resource_type=request.POST['resource-type'],
+            owner=request.user,
+            title=frm.cleaned_data['title'],
+            keywords=[k.strip() for k in frm.cleaned_data['keywords'].split(',')] if frm.cleaned_data['keywords'] else None,
+            dublin_metadata=dcterms,
+            files=request.FILES.values(),
+            content=frm.cleaned_data['abstract'] or frm.cleaned_data['title']
+        )
+        return HttpResponseRedirect(res.get_absolute_url())
+
+@login_required
+def get_file(request, *args, **kwargs):
+    from icommands import RodsSession
+    name = kwargs['name']
+    session = RodsSession("./", "/usr/bin")
+    session.runCmd("iinit");
+    session.runCmd('iget', [ name, 'tempfile.' + name ])
+    return HttpResponse(open(name), content_type='x-binary/octet-stream')
 
 
 # FIXME need a task somewhere that amounts to checking inactive accounts and deleting them after 30 days.
