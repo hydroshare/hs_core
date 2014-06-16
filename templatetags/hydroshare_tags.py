@@ -74,11 +74,15 @@ def contact(content):
     Takes a value edited via the WYSIWYG editor, and passes it through
     each of the functions specified by the RICHTEXT_FILTERS setting.
     """
+    if not content:
+        return ''
 
-    if content.first_name:
-        content = """<a href='/hs_core/users/{un}/'>{fn} {ln}<a>""".format(fn=content.first_name, ln=content.last_name, un=content.username)
+    if not content.is_authenticated():
+        content = "Anonymous"
+    elif content.first_name:
+        content = """<a href='/user/{un}/'>{fn} {ln}<a>""".format(fn=content.first_name, ln=content.last_name, un=content.username)
     else:
-        content = """<a href='/hs_core/users/{un}/'>{un}<a>""".format(un=content.username)
+        content = """<a href='/user/{un}/'>{un}<a>""".format(un=content.username)
 
     return content
 
@@ -89,7 +93,9 @@ def best_name(content):
     each of the functions specified by the RICHTEXT_FILTERS setting.
     """
 
-    if content.first_name:
+    if not content.is_authenticated():
+        content = "Anonymous"
+    elif content.first_name:
         content = """{fn} {ln}""".format(fn=content.first_name, ln=content.last_name, un=content.username)
     else:
         content = content.username

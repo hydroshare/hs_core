@@ -1,102 +1,131 @@
 {% extends "pages/page.html" %}
 {% load geoanalytics_tags pages_tags mezzanine_tags keyword_tags comment_tags hydroshare_tags %}
 
-{% block title %}{{ user|contact|safe }}'s Resources{% endblock %}
+{% block title %}{{ user|best_name }}'s Resources{% endblock %}
 
 {% block main %}
-    <div class="container-fluid" id="filtering" style="padding-bottom: 1em;">
-        <h4>Filtering</h4>
-        <div class="row" style="padding-bottom: 0.3em;">
-        <div class="col-md-12">
-        <h5>Dublin core</h5>
-        
-            <form class="form-inline" role="form" action="">
-                <div class="form-group">
-                    <select name="dcterm1" id="dcterm{{ k }}">
-                        {% for t, ln in dcterms %}
-                        <option value="{{ t }}">{{ ln }}</option>
-                        {% endfor %}
-                    </select>
-                </div>
-                <div class="form-group">
-                    <input type="text" name="dccontent1" id="dccontent1" size="80" placeholder="Keywords that should appear in the term content"/>
-                </div>
-                <div class="form-group">
-                    <button class="btn btn-primary"><i class="fa fa-trash-o"></i> Remove Filter</button>
-                </div>
-            </form>
-        </div>
-        </div>
-        <div class="row" style="padding-bottom: 0.3em;">
-
+<div class="container-fluid" id="filtering" style="padding-bottom: 1em;">
+    <h4>Filtering</h4>
+    <form class="form-inline" role="form" action="" id="filter-form">
+    <div class="row" style="padding-bottom: 0.3em;">
         <div class="col-md-12">
             <h5>Keywords</h5>
 
-            <form class="form-inline" role="form" action="">
                 <div class="form-group">
-                    <input type="text" class="form-control" name="dccontent1" id="dccontent1" size="80" placeholder="General keywords associated with the resource"/>
+                    <input type="text" class="form-control" name="keywords" id="dccontent1" size="80" placeholder="General keywords associated with the resource"/>
                 </div>
-
-            </form>
         </div>
     </div>
+    <div class="row" style="padding-bottom: 0.3em;" >
+        <div class="col-md-12" id="dcterms-rows">
+            <h5>Dublin core</h5>
 
-        <hr/>
-
-    </div>
-    <div class="container-fluid" id="main">
-        <div class="row">
-            <div class="col-lg-2" id="folders">
-                <ul class="nav nav-stacked nav-pills">
-                    <li><a href="?user={{ user.pk }}">Created by me</a></li>
-                    <li><a href="#">Starred <i class="fa fa-star"></i></a></li>
-                    <li><a href="?user={{ user.pk }}&edit_permission=true">Editable by me</a></li>
-                    <li><a href="?user={{ user.pk }}">Viewable by me</a></li>
-                    <li><a href="?published=true#">Published</a></li>
-                    <li><a href="#">Recent</a></li>
-                </ul>
-
-            </div>
-            <div class="col-lg-10" id="items">
-                <div style="padding-bottom: 0.5em">
-                <a class="btn btn-success" href="/create-resource/"><i class="fa fa-plus"></i> Create new</a>
-                <a class="btn btn-danger pull-right"><i class="fa fa-trash-o"></i> Delete selected</a>
-
-                </div>
-
-                <table class="table table-striped table-hover" id="item-selectors">
-                    <tr>
-                        <th><input type="checkbox" name="select-all" id="select-all"/></th>
-                        <th>Title <i class="fa fa-sort-desc"></i></th>
-                        <th><i class="text-warning fa fa-star"></i></th>
-                        <th>Type</th>
-                        <th>Creator</th>
-                        <th>Last modified</th>
-                    </tr>
-
-                    {# ################### #}
-                    {% for res in resources %}
-                    <tr>
-                        <td><input type="checkbox" name="select-item" id="select-item1"/></td>
-                        <td><a href="{{ res.get_absolute_url }}">{{ res.title }}</a></td>
-                        <th><i class="text-warning fa {% if starred %}fa-star{% else %}fa-star-o{% endif %}"></i></th>
-                        <td>{{ res|resource_type }}</td>
-                        <td>{{ user|contact|safe }}</td>
-                        <td>{{ res.updated|date }}, {{ res.updated|time }}</td>
-                    </tr>
-                    {% endfor %}
-
-                </table>
-
-                <div class="btn-toolbar">
-                    <a class="btn btn-link" href="?start=0"><i class="fa fa-fast-backward"></i></a>
-                    <a class="btn btn-link" href="?start={{ first|add:"-20" }}"><i class="fa fa-backward"></i></a>
-                    Results {{ first }}-{{ last }} of {{ ct }}
-                    <a class="btn btn-link" href="?start={{ first|add:"20" }}"><i class="fa fa-forward"></i></a>
-                    <a class="btn btn-link" href="?start={{ first|add:"100" }}"><i class="fa fa-fast-forward"></i></a>
+            <div class="row" id="initial-dcterm">
+                <div class="col-md-12">
+                    <div class="form-group">
+                        <select name="dcterm1" id="dcterm1">
+                            {% for t, ln in dcterms %}
+                            <option value="{{ t }}">{{ ln }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <input type="text" name="dccontent1" id="dccontent1" size="80" placeholder="Keywords that should appear in the term content"/>
+                    </div>
 
                 </div>
             </div>
         </div>
     </div>
+
+    <div class="row" style="padding-bottom: 0.3em;" >
+        <div class="col-md-12" id="dcterms-rows">
+
+            <div class="form-group" style="padding-top: 0.3em;">
+                    <button class="btn btn-primary" id="add-row">
+                        Add row
+                    </button>
+                    <button class="btn btn-primary" type="submit">Update results</button>
+                </div>
+
+        </div>
+    </div>
+    </form>
+</div>
+
+<hr/>
+<div class="container-fluid" id="main">
+    <div class="row">
+        <div class="col-lg-2" id="folders">
+            <ul class="nav nav-stacked">
+                <li><a href="?creator={{ user.pk }}">Created by me</a></li>
+                {#  <li><a href="#">Starred <i class="fa fa-star"></i></a></li> #}
+                <li><a href="?user={{ user.pk }}&edit_permission=true">Editable by me</a></li>
+                <li><a href="?user={{ user.pk }}">Viewable by me</a></li>
+                <li><a href="?published=true">Published</a></li>
+                {# <li><a href="#">Recent</a></li> #}
+            </ul>
+
+        </div>
+        <div class="col-lg-10" id="items">
+            <div style="padding-bottom: 0.5em">
+            <a class="btn btn-success" href="/create-resource/"><i class="fa fa-plus"></i> Create new</a>
+
+            </div>
+
+            <table class="table table-striped table-hover" id="item-selectors">
+                <tr>
+                    <th><input type="checkbox" name="select-all" id="select-all"/></th>
+                    <th>Title <i class="fa fa-sort-desc"></i></th>
+                    {# <th><i class="text-warning fa fa-star"></i></th> #}
+                    <th>Type</th>
+                    <th>Creator</th>
+                    <th>Last modified</th>
+                </tr>
+
+                {# ################### #}
+                {% for res in resources %}
+                <tr>
+                    <td><input type="checkbox" name="select-item" id="select-item1"/></td>
+                    <td><a href="{{ res.get_absolute_url }}">{{ res.title }}</a></td>
+                    {# <th><i class="text-warning fa {% if starred %}fa-star{% else %}fa-star-o{% endif %}"></i></th>  #}
+                    <td>{{ res|resource_type }}</td>
+                    <td>{{ res.user|contact|safe }}</td>
+                    <td>{{ res.updated|date }}, {{ res.updated|time }}</td>
+                </tr>
+                {% endfor %}
+
+            </table>
+
+            <div class="btn-toolbar">
+                <a class="btn btn-link" href="?start=0"><i class="fa fa-fast-backward"></i></a>
+                <a class="btn btn-link" href="?start={{ first|add:"-20" }}"><i class="fa fa-backward"></i></a>
+                Results {{ first }}-{{ last }} of {{ ct }}
+                <a class="btn btn-link" href="?start={{ first|add:"20" }}"><i class="fa fa-forward"></i></a>
+                <a class="btn btn-link" href="?start={{ first|add:"100" }}"><i class="fa fa-fast-forward"></i></a>
+
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+    <script type="text/javascript">
+        var k = 1;
+        $(function() {
+            $("#add-row").click(function() {
+                k++;
+                var new_row = $("#initial-dcterm").clone();
+                $("#dcterm1", new_row).attr('name', 'dcterm' + k).attr('id', 'dcterm' + k);
+                $("#dccontent1", new_row).attr('name', 'dccontent' + k).attr('id', 'dccontent' + k);
+
+                $("#dcterms-rows").append(new_row);
+                new_row.attr('id', 'dcterm' + k);
+                return false;
+            })
+        })
+    </script>
+
 {% endblock %}

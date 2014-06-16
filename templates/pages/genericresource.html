@@ -30,7 +30,7 @@
             <tr><th>Resource Type</th><td>{{ resource_type }}</td></tr>
             <tr><th>Created by</th><td>{{ cm.user|contact|safe }}</td></tr>
             <tr><th>Created on</th><td>{{ cm.created|date }}</td></tr>
-            <tr><th>Last updated by</th><td>{{ cm.last_changed_by|contact|safe }}</td></tr>
+            <tr><th>Last updated by</th><td>{% if cm.last_changed_by %}{{ cm.last_changed_by|contact|safe }}{% endif %}</td></tr>
             <tr><th>Updated on</th><td>{{ cm.updated|date }}</td></tr>
             <tr><th>Keywords</th><td>{{ kws|join:', ' }}</td></tr>
             <tr><th>Size</th><td>{{ cm.bags.first.bag.size|filesizeformat }}</td></tr>
