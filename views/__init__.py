@@ -305,10 +305,10 @@ def add_dublin_core(request, page):
 
 class CreateResourceForm(forms.Form):
     title = forms.CharField(required=True)
-    creators = forms.CharField()
-    contributors = forms.CharField()
-    abstract = forms.CharField()
-    keywords = forms.CharField()
+    creators = forms.CharField(required=False, min_length=0)
+    contributors = forms.CharField(required=False, min_length=0)
+    abstract = forms.CharField(required=False, min_length=0)
+    keywords = forms.CharField(required=False, min_length=0)
 
 @login_required
 def create_resource(request, *args, **kwargs):
@@ -331,7 +331,7 @@ def create_resource(request, *args, **kwargs):
             resource_type=request.POST['resource-type'],
             owner=request.user,
             title=frm.cleaned_data['title'],
-            keywords=[k.strip() for k in frm.cleaned_data['keywords'].split(',')] if frm.cleaned_data['keywords'] else None,
+            keywords=[k.strip() for k in frm.cleaned_data['keywords'].split(',')] if frm.cleaned_data['keywords'] else None, 
             dublin_metadata=dcterms,
             files=request.FILES.values(),
             content=frm.cleaned_data['abstract'] or frm.cleaned_data['title']
