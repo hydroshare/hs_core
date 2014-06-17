@@ -8,6 +8,7 @@ from mezzanine.conf import settings
 import importlib
 import zipfile
 from foresite import *
+from rdflib import URIRef, Namespace
 
 def make_zipfile(output_filename, source_dir):
     """
