@@ -53,7 +53,18 @@ def create_bag(resource):
             os.makedirs(d)
 
     for f in resource.files.all():
-        shutil.copy2(f.resource_file.path, contents_path)
+        rfile_name = f.resource_file.name.split('/', 1)[1] # truncate short_id directory name
+        opath = os.path.join(contents_path, rfile_name).rsplit('/', 1)[0]
+        if opath != contents_path:
+            try:
+                os.makedirs(opath)
+            except Exception as e:
+                print e
+
+        with open(os.path.join(contents_path, rfile_name), 'w+b') as out:
+            for chunk in f.resource_file.chunks():
+                out.write(chunk)
+
 
     tastypie_module = resource._meta.app_label + '.api'        # the module name should follow this convention
     tastypie_name = resource._meta.object_name + 'Resource'    # the classname of the Resource seralizer

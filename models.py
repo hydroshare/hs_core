@@ -13,6 +13,7 @@ from mezzanine.core.models import Ownable
 from mezzanine.generic.fields import CommentsField
 from mezzanine.conf import settings as s
 import os.path
+from django_irods.storage import IrodsStorage
 # from dublincore.models import QualifiedDublinCoreElement
 from dublincore import models as dc
 
@@ -215,14 +216,14 @@ class ResourceFile(models.Model):
     content_type = models.ForeignKey(ContentType)
 
     content_object = generic.GenericForeignKey('content_type', 'object_id')
-    resource_file = models.FileField(upload_to=get_path, storage=getattr(s, 'RESOURCE_FILE_STORAGE', None))
+    resource_file = models.FileField(upload_to=get_path, storage=IrodsStorage())
 
 class Bags(models.Model):
     object_id = models.PositiveIntegerField()
     content_type = models.ForeignKey(ContentType)
 
     content_object = generic.GenericForeignKey('content_type', 'object_id')
-    bag = models.FileField(upload_to='bags', storage=getattr(s, 'BAGIT_STORAGE', None), null=True) # actually never null
+    bag = models.FileField(upload_to='bags', storage=IrodsStorage(), null=True) # actually never null
     timestamp = models.DateTimeField(default=now, db_index=True)
 
     class Meta:
