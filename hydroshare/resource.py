@@ -300,7 +300,7 @@ def create_resource(
     :param edit_groups: list of group names or Group instances who will be given edit permissions
     :param view_groups: list of group names or Group instances who will be given view permissions
     :param keywords: string list. list of keywords to add to the resource
-    :param dublin_metadata: list of dicts containing keys { 'term', 'qualifier', 'content' } respecting dublin core std.
+    :param dublin_metadata: list of dicts containing keys { 'term', 'content' } respecting dublin core std.
     :param files: list of Django File or UploadedFile objects to be attached to the resource
     :param kwargs: extra arguments to fill in required values in AbstractResource subclasses
 
@@ -362,7 +362,6 @@ def create_resource(
         for d in dublin_metadata:
             QualifiedDublinCoreElement.objects.create(
                 term=d['term'],
-                qualifier=d.get('qualifier'),
                 content=d['content'],
                 content_object=resource
             )
@@ -464,7 +463,6 @@ def update_resource(
         for d in dublin_metadata:
             QualifiedDublinCoreElement.objects.create(
                 term=d['term'],
-                qualifier=d.get('qualifier'),
                 content=d['content'],
                 content_object=resource
             )
@@ -569,7 +567,6 @@ def update_science_metadata(pk, dublin_metadata=None, keywords=None, **kwargs):
         for d in dublin_metadata:
             QualifiedDublinCoreElement.objects.create(
                 term=d['term'],
-                qualifier=d.get('qualifier'),
                 content=d['content'],
                 content_object=resource
             )

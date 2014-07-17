@@ -69,8 +69,7 @@ def add_metadata_term(request, shortkey, *args, **kwargs):
     res, _, _ = authorize(request, shortkey, edit=True, full=True, superuser=True)
     res.dublin_metadata.create(
         term=request.REQUEST['term'],
-        content=request.REQUEST['content'],
-        qualifier=request.REQUEST.get('qualifier', None) or None # or None will set none instead of blank.
+        content=request.REQUEST['content']
     )
     resource_modified(res, request.user)
     return HttpResponseRedirect(request.META['HTTP_REFERER'])
@@ -211,62 +210,26 @@ def my_resources(request, page):
             'first': start,
             'last': start+len(res),
             'ct': len(res),
-            'dcterms' : (\
+            'dcterms' : (
                 ('AB', 'Abstract'),
-                ('AR', 'AccessRights'),
-                ('AM', 'AccrualMethod'),
-                ('AP', 'AccrualPeriodicity'),
-                ('APL', 'AccrualPolicy'),
-                ('ALT', 'Alternative'),
-                ('AUD', 'Audience'),
-                ('AVL', 'Available'),
-                ('BIB', 'BibliographicCitation'),
-                ('COT', 'ConformsTo'),
+                ('BX', 'Box'),
                 ('CN', 'Contributor'),
                 ('CVR', 'Coverage'),
-                ('CRD', 'Created'),
                 ('CR', 'Creator'),
                 ('DT', 'Date'),
-                ('DTA', 'DateAccepted'),
-                ('DTC', 'DateCopyrighted'),
-                ('DTS', 'DateSubmitted'),
                 ('DSC', 'Description'),
-                ('EL', 'EducationLevel'),
-                ('EXT', 'Extent'),
                 ('FMT', 'Format'),
-                ('HFMT', 'HasFormat'),
-                ('HPT', 'HasPart'),
-                ('HVS', 'HasVersion'),
                 ('ID', 'Identifier'),
-                ('IM', 'InstructionalMethod'),
-                ('IFMT', 'IsFormatOf'),
-                ('IPT', 'IsPartOf'),
-                ('IREF', 'IsReferencedBy'),
-                ('IREP', 'IsReplacedBy'),
-                ('IREQ', 'IsRequiredBy'),
-                ('IS', 'Issued'),
-                ('IVSN', 'IsVersionOf'),
                 ('LG', 'Language'),
-                ('LI', 'License'),
-                ('ME', 'Mediator'),
-                ('MED', 'Medium'),
-                ('MOD', 'Modified'),
-                ('PRV', 'Provenance'),
+                ('PD', 'Period'),
+                ('PT', 'Point'),
                 ('PBL', 'Publisher'),
-                ('REF', 'References'),
                 ('REL', 'Relation'),
-                ('REP', 'Replaces'),
-                ('REQ', 'Requires'),
                 ('RT', 'Rights'),
-                ('RH', 'RightsHolder'),
                 ('SRC', 'Source'),
-                ('SP', 'Spatial'),
                 ('SUB', 'Subject'),
-                ('TOC', 'TableOfContents'),
-                ('TE', 'Temporal'),
                 ('T', 'Title'),
                 ('TYP', 'Type'),
-                ('VA', 'Valid'),
     )
         }
 
@@ -279,7 +242,7 @@ def add_dublin_core(request, page):
     class DCTerm(forms.ModelForm):
         class Meta:
             model=dc.QualifiedDublinCoreElement
-            fields = ['term','qualifier','content']
+            fields = ['term', 'content']
 
     cm = page.get_content_model()
     try:
@@ -288,9 +251,8 @@ def add_dublin_core(request, page):
         abstract = None
 
     return {
-        'dublin_core' : [t for t in cm.dublin_metadata.all().exclude(term='AB').exclude(term='REF')],
+        'dublin_core' : [t for t in cm.dublin_metadata.all().exclude(term='AB')],
         'abstract' : abstract,
-        'citations' : [t.content for t in cm.dublin_metadata.filter(term='REF')],
         'resource_type' : cm._meta.verbose_name,
         'dcterm_frm' : DCTerm(),
         'bag' : cm.bags.first(),
@@ -317,16 +279,16 @@ def create_resource(request, *args, **kwargs):
     if frm.is_valid():
 
         dcterms = [
-            { 'term' : 'T', 'qualifier' : None, 'content' : frm.cleaned_data['title'] },
-            { 'term' : 'AB', 'qualifier' : None, 'content' : frm.cleaned_data['abstract'] or frm.cleaned_data['title']},
-            { 'term' : 'DTS', 'qualifier' : None, 'content' : now().isoformat() }
+            { 'term': 'T', 'content': frm.cleaned_data['title'] },
+            { 'term': 'AB',  'content': frm.cleaned_data['abstract'] or frm.cleaned_data['title']},
+            { 'term': 'DT', 'content': now().isoformat()}
         ]
         for cn in frm.cleaned_data['contributors'].split(','):
             cn = cn.strip()
-            dcterms.append({'term' : 'CN', 'qualifier' : None, 'content' : cn})
+            dcterms.append({'term': 'CN', 'content': cn})
         for cr in frm.cleaned_data['creators'].split(','):
             cr = cr.strip()
-            dcterms.append({'term' : 'CR', 'qualifier' : None, 'content' : cr})
+            dcterms.append({'term': 'CR', 'content': cr})
 
         res = hydroshare.create_resource(
             resource_type=request.POST['resource-type'],
