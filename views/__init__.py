@@ -52,8 +52,8 @@ def add_file_to_resource(request, *args, **kwargs):
         raise TypeError('shortkey must be specified...')
 
     res, _, _ = authorize(request, shortkey, edit=True, full=True, superuser=True)
-    for f in request.FILES['file']:
-        res.files.add(ResourceFile(content_object=res, resource_file=f))
+    f =request.FILES['file']
+    res.files.add(ResourceFile(content_object=res, resource_file=f))
     resource_modified(res, request.user)
     return HttpResponseRedirect(request.META['HTTP_REFERER'])
 
