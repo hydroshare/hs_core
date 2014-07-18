@@ -9,7 +9,6 @@ import importlib
 import zipfile
 from foresite import *
 from rdflib import URIRef, Namespace
-import utils as hs_utils
 
 def make_zipfile(output_filename, source_dir):
     """
@@ -73,6 +72,7 @@ def create_bag(resource):
     serializer = getattr(tastypie_api, tastypie_name)()        # make an instance of the tastypie resource       
 
     with open(bagit_path + '/resourcemetadata.xml', 'w') as out:
+        import utils as hs_utils
         out.write(hs_utils.serialize_science_metadata_xml(resource))
 
     hs_res_url = os.path.join('http://hydroshare.org/resources', resource.title)
