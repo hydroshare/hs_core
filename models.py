@@ -17,6 +17,7 @@ from django_irods.storage import IrodsStorage
 # from dublincore.models import QualifiedDublinCoreElement
 from dublincore import models as dc
 from django.conf import settings
+from django.core.files.storage import DefaultStorage
 
 
 class GroupOwnership(models.Model):
@@ -217,14 +218,14 @@ class ResourceFile(models.Model):
     content_type = models.ForeignKey(ContentType)
 
     content_object = generic.GenericForeignKey('content_type', 'object_id')
-    resource_file = models.FileField(upload_to=get_path, storage=IrodsStorage() if getattr(settings,'USE_IRODS', False) else settings.DEFAULT_FILE_STORAGE)
+    resource_file = models.FileField(upload_to=get_path, storage=IrodsStorage() if getattr(settings,'USE_IRODS', False) else DefaultStorage())
 
 class Bags(models.Model):
     object_id = models.PositiveIntegerField()
     content_type = models.ForeignKey(ContentType)
 
     content_object = generic.GenericForeignKey('content_type', 'object_id')
-    bag = models.FileField(upload_to='bags', storage=IrodsStorage() if getattr(settings,'USE_IRODS', False) else settings.DEFAULT_FILE_STORAGE, null=True) # actually never null
+    bag = models.FileField(upload_to='bags', storage=IrodsStorage() if getattr(settings,'USE_IRODS', False) else DefaultStorage(), null=True) # actually never null
     timestamp = models.DateTimeField(default=now, db_index=True)
 
     class Meta:
