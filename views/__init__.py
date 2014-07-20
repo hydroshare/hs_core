@@ -177,6 +177,7 @@ def my_resources(request, page):
 
     frm = FilterForm(data=request.REQUEST)
     if frm.is_valid():
+        owner = frm.cleaned_data['creator'] or None
         user = frm.cleaned_data['user'] or (request.user if request.user.is_authenticated() else None)
         edit_permission = frm.cleaned_data['edit_permission'] or False
         published = frm.cleaned_data['published'] or False
@@ -184,6 +185,7 @@ def my_resources(request, page):
         from_date = frm.cleaned_data['from_date'] or None
         keywords = [k.strip() for k in request.REQUEST['keywords'].split(',')] if request.REQUEST.get('keywords', None) else None
         public = not request.user.is_authenticated()
+
         dcterms = defaultdict(dict)
         for k, v in filter(lambda (x, y): x.startswith('dc'), request.REQUEST.items()):
             num = int(k[-1])
@@ -193,6 +195,7 @@ def my_resources(request, page):
         res = set()
         for lst in get_resource_list(
             user=user,
+            owner= owner,
             count=20,
             published=published,
             edit_permission=edit_permission,

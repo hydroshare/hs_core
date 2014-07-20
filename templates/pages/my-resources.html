@@ -1,7 +1,8 @@
 {% extends "pages/page.html" %}
 {% load geoanalytics_tags pages_tags mezzanine_tags keyword_tags comment_tags hydroshare_tags %}
 
-{% block title %}{{ user|best_name }}'s Resources{% endblock %}
+{# {% block title %}{{ user|best_name }}'s Resources{% endblock %}#}
+{% block title %}Resources{% endblock %}
 
 {% block main %}
 <div class="container-fluid" id="filtering" style="padding-bottom: 1em;">
@@ -58,11 +59,15 @@
     <div class="row">
         <div class="col-lg-2" id="folders">
             <ul class="nav nav-stacked">
-                <li><a href="?creator={{ user.pk }}">Created by me</a></li>
+                <li><a href="?creator={{ user.pk }}">Owned by me</a></li>
                 {#  <li><a href="#">Starred <i class="fa fa-star"></i></a></li> #}
                 <li><a href="?user={{ user.pk }}&edit_permission=true">Editable by me</a></li>
-                <li><a href="?user={{ user.pk }}">Viewable by me</a></li>
-                <li><a href="?published=true">Published</a></li>
+                {% if user.pk %}
+                    <li><a href="?user={{ user.pk }}">Viewable by me</a></li>
+                {% else %}
+                    <li><a href="/my-resources">Viewable by me</a></li>
+                {%  endif %}
+               {#  <li><a href="?published=true">Published</a></li>#}
                 {# <li><a href="#">Recent</a></li> #}
             </ul>
 
@@ -79,7 +84,7 @@
                     <th>Title <i class="fa fa-sort-desc"></i></th>
                     {# <th><i class="text-warning fa fa-star"></i></th> #}
                     <th>Type</th>
-                    <th>Creator</th>
+                    <th>Owner</th>
                     <th>Last modified</th>
                 </tr>
 

@@ -538,7 +538,7 @@ def delete_group_owner(group, user):
 
 
 def get_resource_list(
-        group=None, user=None,
+        group=None, user=None, owner=None,
         from_date=None, to_date=None,
         start=None, count=None,
         keywords=None, dc=None,
@@ -592,7 +592,7 @@ def get_resource_list(
     """
     from django.db.models import Q
 
-    if not any((group, user, from_date, to_date, start, count, keywords, dc, full_text_search, public)):
+    if not any((group, user, owner, from_date, to_date, start, count, keywords, dc, full_text_search, public)):
         raise NotImplemented("Returning the full resource list is not supported.  at least limit by count")
 
     resource_types = get_resource_types()
@@ -617,8 +617,10 @@ def get_resource_list(
 
             if user:
                 user = user_from_id(user)
-                queries[t].append(Q(edit_users=user) | Q(view_users=user) | Q(owners=user) | Q(public=True))
-
+                if owner:
+                    queries[t].append(Q(owners=user))
+                else:
+                    queries[t].append(Q(edit_users=user) | Q(view_users=user) | Q(owners=user) | Q(public=True))
 
         if from_date and to_date:
             queries[t].append(Q(updated__range=(from_date, to_date)))
