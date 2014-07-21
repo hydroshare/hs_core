@@ -15,9 +15,6 @@
     <a class="btn btn-primary" id="share" href="#sharing">Share</a>
     {% endif %}
 
-    {% if page.perms.change %}
-    <a class="btn btn-primary" href="/admin/pages/page/{{ page.pk }}" id="edit">Edit</a>
-    {% endif %}
     {% if page.perms.delete %}
     <button class="btn btn-danger" id="delete"  data-toggle="modal" data-target="#delete-resource-dialog">Delete</button>
     {% endif %}
