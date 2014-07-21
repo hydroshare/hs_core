@@ -4,7 +4,7 @@ from hs_core.models import GenericResource
 from django.contrib.auth.models import Group, User
 from hs_core import hydroshare
 from dublincore.models import QualifiedDublinCoreElement
-from hs_scholar_profile.models import *
+#from hs_scholar_profile.models import *
 
 class TestUtils(TestCase):
     def setUp(self):
@@ -148,14 +148,14 @@ class TestUtils(TestCase):
             content_object=self.res
         )
 
-        person = Person.objects.create(uniqueCode='101', name='Pabitra Dash', givenName='Pabitra', familyName='Dash', jobTitle='Developer')
+        #person = Person.objects.create(uniqueCode='101', name='Pabitra Dash', givenName='Pabitra', familyName='Dash', jobTitle='Developer')
 
-        QualifiedDublinCoreElement.objects.create(
-            term='CN',
-            qualifier=None,
-            content=person.uniqueCode,
-            content_object=self.res
-        )
+        # QualifiedDublinCoreElement.objects.create(
+        #     term='CN',
+        #     qualifier=None,
+        #     content=person.uniqueCode,
+        #     content_object=self.res
+        # )
 
         QualifiedDublinCoreElement.objects.create(
             term='DSC',
@@ -298,4 +298,4 @@ class TestUtils(TestCase):
         print(xml)
 
         # knowingly have this buggy statement so that I (Pabitra) can see the output of the above print statement
-        #print(xml1)
+        print(xml1)

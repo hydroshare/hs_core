@@ -7,7 +7,7 @@ from hs_core.models import AbstractResource
 from django.core.exceptions import ObjectDoesNotExist
 from django.contrib.auth.models import User, Group
 from . import hs_bagit
-from hs_scholar_profile.models import *
+#from hs_scholar_profile.models import *
 
 import importlib
 import json
@@ -189,17 +189,17 @@ def serialize_science_metadata_xml(res):
             hsterms_creatorOrder.text = str(creator_count)
             creator_count +=1
 
-            try:
-                # TODO: retrieve a person object based on email address when email address gets implemented
-                # correctly for Party model
-                person = Person.objects.filter(uniqueCode = creator['content']).first()
-                hsterms_name.text = person.name
-            except:
-                person = None
-
-            if person and person.organizations.all():
-                hsterms_organization = etree.SubElement(dc_creator_rdf_Description, '{%s}organization' % NAMESPACES['hsterms'])
-                hsterms_organization.text = person.organizations.all()[0].name
+            # try:
+            #     # TODO: retrieve a person object based on email address when email address gets implemented
+            #     # correctly for Party model
+            #     person = Person.objects.filter(uniqueCode = creator['content']).first()
+            #     hsterms_name.text = person.name
+            # except:
+            #     person = None
+            #
+            # if person and person.organizations.all():
+            #     hsterms_organization = etree.SubElement(dc_creator_rdf_Description, '{%s}organization' % NAMESPACES['hsterms'])
+            #     hsterms_organization.text = person.organizations.all()[0].name
 
             if user:
                 hsterms_email = etree.SubElement(dc_creator_rdf_Description, '{%s}email' % NAMESPACES['hsterms'])
@@ -210,20 +210,20 @@ def serialize_science_metadata_xml(res):
             #     hsterms_email = etree.SubElement(dc_creator_rdf_Description, '{%s}email' % NAMESPACES['hsterms'])
             #     hsterms_email.text = user.email if user else person.email_addresses.all()[0].email_address
 
-            if person:
-                if person.mail_addresses.all():
-                    hsterms_address = etree.SubElement(dc_creator_rdf_Description, '{%s}address' % NAMESPACES['hsterms'])
-                    # pick the first address - not sure which one we should be using if there are more than one addresses
-                    hsterms_address.text = person.mail_addresses.all()[0].address
-                if person.phone_numbers.all():
-                    hsterms_phone = etree.SubElement(dc_creator_rdf_Description, '{%s}phone' % NAMESPACES['hsterms'])
-                    # just pick the 1st one as we don't which one to use if there are more than one
-                    hsterms_phone.set('{%s}resource' % NAMESPACES['rdf'], 'tel:' + person.phone_numbers.all()[0].phone_number)
-                if person.url:
-                    hsterms_homepage = etree.SubElement(dc_creator_rdf_Description, '{%s}homepage' % NAMESPACES['hsterms'])
-                    hsterms_homepage.set('{%s}resource' % NAMESPACES['rdf'], person.url)
-                # TODO: not sure where to find researcherID and researcherGateID
-                #scholar.external_identifiers.all()[0].identifierName
+            # if person:
+            #     if person.mail_addresses.all():
+            #         hsterms_address = etree.SubElement(dc_creator_rdf_Description, '{%s}address' % NAMESPACES['hsterms'])
+            #         # pick the first address - not sure which one we should be using if there are more than one addresses
+            #         hsterms_address.text = person.mail_addresses.all()[0].address
+            #     if person.phone_numbers.all():
+            #         hsterms_phone = etree.SubElement(dc_creator_rdf_Description, '{%s}phone' % NAMESPACES['hsterms'])
+            #         # just pick the 1st one as we don't which one to use if there are more than one
+            #         hsterms_phone.set('{%s}resource' % NAMESPACES['rdf'], 'tel:' + person.phone_numbers.all()[0].phone_number)
+            #     if person.url:
+            #         hsterms_homepage = etree.SubElement(dc_creator_rdf_Description, '{%s}homepage' % NAMESPACES['hsterms'])
+            #         hsterms_homepage.set('{%s}resource' % NAMESPACES['rdf'], person.url)
+            #     # TODO: not sure where to find researcherID and researcherGateID
+            #     #scholar.external_identifiers.all()[0].identifierName
 
 
     contributors = _get_dc_term_objects(res_dict[DUBLIN_METADATA], 'CN')
@@ -248,18 +248,18 @@ def serialize_science_metadata_xml(res):
             else:
                 hsterms_name.text = contributor['content']
 
-            try:
-                # check if the contributor is a Person is in the Party model
-                # TODO: retrieve a person object based on email address when email address gets implemented
-                # correctly for Party model
-                person = Person.objects.filter(uniqueCode = contributor['content']).first()
-                hsterms_name.text = person.name
-            except:
-                person = None
-
-            if person and person.organizations.all():
-                hsterms_organization = etree.SubElement(dc_creator_rdf_Description, '{%s}organization' % NAMESPACES['hsterms'])
-                hsterms_organization.text = person.organizations.all()[0].name
+            # try:
+            #     # check if the contributor is a Person is in the Party model
+            #     # TODO: retrieve a person object based on email address when email address gets implemented
+            #     # correctly for Party model
+            #     person = Person.objects.filter(uniqueCode = contributor['content']).first()
+            #     hsterms_name.text = person.name
+            # except:
+            #     person = None
+            #
+            # if person and person.organizations.all():
+            #     hsterms_organization = etree.SubElement(dc_creator_rdf_Description, '{%s}organization' % NAMESPACES['hsterms'])
+            #     hsterms_organization.text = person.organizations.all()[0].name
 
             if user:
                 hsterms_email = etree.SubElement(dc_contributor_rdf_Description, '{%s}email' % NAMESPACES['hsterms'])
