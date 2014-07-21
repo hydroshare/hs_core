@@ -3,7 +3,9 @@ from __future__ import absolute_import
 from django.db.models import get_model, get_models
 from django.http import Http404
 from django.shortcuts import get_object_or_404
+from django.utils.timezone import now
 from hs_core.models import AbstractResource
+from dublincore.models import QualifiedDublinCoreElement
 from django.core.exceptions import ObjectDoesNotExist
 from django.contrib.auth.models import User, Group
 from . import hs_bagit
@@ -398,13 +400,16 @@ def get_serializer(resource):
 
 def resource_modified(resource, by_user=None):
     resource.last_changed_by = by_user
+    QualifiedDublinCoreElement.objects.filter(term='DM', object_id=resource.pk).delete()
+    QualifiedDublinCoreElement.objects.create(
+        term='DM',
+        content=now().isoformat(),
+        content_object=resource
+            )
     resource.save()
     hs_bagit.create_bag(resource)
 
-def _get_dc_term_objects(resource_dc_elements, term, qualifier=None):
-    if qualifier:
-        return [cr_dict for cr_dict in resource_dc_elements if cr_dict['term'] == term and cr_dict['qualifier'] == qualifier]
-
+def _get_dc_term_objects(resource_dc_elements, term):
     return [cr_dict for cr_dict in resource_dc_elements if cr_dict['term'] == term]
 
 def _get_user_info(user):

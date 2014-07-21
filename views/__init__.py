@@ -220,6 +220,9 @@ def my_resources(request, page):
                 ('CVR', 'Coverage'),
                 ('CR', 'Creator'),
                 ('DT', 'Date'),
+                ('DTS', 'DateSubmitted'),
+                ('DC', 'DateCreated'),
+                ('DM', 'DateModified'),
                 ('DSC', 'Description'),
                 ('FMT', 'Format'),
                 ('ID', 'Identifier'),
@@ -284,7 +287,8 @@ def create_resource(request, *args, **kwargs):
         dcterms = [
             { 'term': 'T', 'content': frm.cleaned_data['title'] },
             { 'term': 'AB',  'content': frm.cleaned_data['abstract'] or frm.cleaned_data['title']},
-            { 'term': 'DT', 'content': now().isoformat()}
+            { 'term': 'DT', 'content': now().isoformat()},
+            { 'term': 'DC', 'content': now().isoformat()}
         ]
         for cn in frm.cleaned_data['contributors'].split(','):
             cn = cn.strip()
