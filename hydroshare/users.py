@@ -181,7 +181,7 @@ def create_account(
             password=password,
         )
 
-    u.is_staff = True
+    u.is_staff = False
     if not active:
         u.is_active=False
     u.save()
