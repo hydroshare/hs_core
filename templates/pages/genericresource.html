@@ -35,7 +35,7 @@
             {% if cm.doi %}
             <tr><th>DOI</th><td><a id="permalink" href="http://{{ request.get_host }}/r/doi/{{ cm.doi }}/">{{ cm.doi }}</a></td></tr>
             {% elif page.perms.change %}
-            <tr><th>DOI</th><td><button class='btn btn-danger' data-toggle="modal" data-target="#submit-for-publication-dialog">Submit for publication</button></td></tr>
+            {% comment %}<tr><th>DOI</th><td><button class='btn btn-danger' data-toggle="modal" data-target="#submit-for-publication-dialog">Submit for publication</button></td></tr>{% endcomment %}
             {% endif %}
         </table>
 
