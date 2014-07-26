@@ -25,6 +25,8 @@ from . import discovery_api
 from . import resource_api
 from . import social_api
 
+import autocomplete_light
+
 
 def short_url(request, *args, **kwargs):
     try:
@@ -106,6 +108,14 @@ def publish(request, shortkey, *args, **kwargs):
     return HttpResponseRedirect(request.META['HTTP_REFERER'])
 
 def change_permissions(request, shortkey, *args, **kwargs):
+
+    class AddUserForm(forms.Form):
+        user = forms.ModelChoiceField(User.objects.all(), widget=autocomplete_light.ChoiceWidget("UserAutocomplete"))
+
+    class AddGroupForm(forms.Form):
+        group = forms.ModelChoiceField(Group.objects.all(), widget=autocomplete_light.ChoiceWidget("GroupAutocomplete"))
+
+
     res, _, _ = authorize(request, shortkey, edit=True, full=True, superuser=True)
     t = request.POST['t']
     values = [int(k) for k in request.POST.getlist('designees', [])]
@@ -114,12 +124,37 @@ def change_permissions(request, shortkey, *args, **kwargs):
     elif t == 'edit_users':
         res.edit_users = User.objects.in_bulk(values)
     elif t == 'edit_groups':
-        print 'changing edit groups to: {0}'.format(values)
         res.edit_groups = Group.objects.in_bulk(values)
     elif t == 'view_users':
         res.view_users = User.objects.in_bulk(values)
     elif t == 'view_groups':
         res.view_groups = Group.objects.in_bulk(values)
+    elif t == 'add_view_user':
+        frm = AddUserForm(data=request.POST)
+        if frm.is_valid():
+            res.view_users.add(frm.cleaned_data['user'])
+    elif t == 'add_edit_user':
+        frm = AddUserForm(data=request.POST)
+        if frm.is_valid():
+            res.edit_users.add(frm.cleaned_data['user'])
+    elif t == 'add_view_group':
+        frm = AddGroupForm(data=request.POST)
+        if frm.is_valid():
+            res.view_groups.add(frm.cleaned_data['group'])
+    elif t == 'add_view_group':
+        frm = AddGroupForm(data=request.POST)
+        if frm.is_valid():
+            res.edit_groups.add(frm.cleaned_data['group'])
+    elif t == 'add_owner':
+        frm = AddUserForm(data=request.POST)
+        if frm.is_valid():
+            res.owners.add(frm.cleaned_data['user'])
+    elif t == 'make_public':
+        res.public = True
+        res.save()
+    elif t == 'make_private':
+        res.public = False
+        res.save()
 
     return HttpResponseRedirect(request.META['HTTP_REFERER'])
 
@@ -177,6 +212,7 @@ def my_resources(request, page):
 
     frm = FilterForm(data=request.REQUEST)
     if frm.is_valid():
+        owner = frm.cleaned_data['creator'] or None
         user = frm.cleaned_data['user'] or (request.user if request.user.is_authenticated() else None)
         edit_permission = frm.cleaned_data['edit_permission'] or False
         published = frm.cleaned_data['published'] or False
@@ -184,6 +220,7 @@ def my_resources(request, page):
         from_date = frm.cleaned_data['from_date'] or None
         keywords = [k.strip() for k in request.REQUEST['keywords'].split(',')] if request.REQUEST.get('keywords', None) else None
         public = not request.user.is_authenticated()
+
         dcterms = defaultdict(dict)
         for k, v in filter(lambda (x, y): x.startswith('dc'), request.REQUEST.items()):
             num = int(k[-1])
@@ -193,6 +230,7 @@ def my_resources(request, page):
         res = set()
         for lst in get_resource_list(
             user=user,
+            owner= owner,
             count=20,
             published=published,
             edit_permission=edit_permission,
@@ -217,6 +255,9 @@ def my_resources(request, page):
                 ('CVR', 'Coverage'),
                 ('CR', 'Creator'),
                 ('DT', 'Date'),
+                ('DTS', 'DateSubmitted'),
+                ('DC', 'DateCreated'),
+                ('DM', 'DateModified'),
                 ('DSC', 'Description'),
                 ('FMT', 'Format'),
                 ('ID', 'Identifier'),
@@ -237,6 +278,13 @@ def my_resources(request, page):
 
 @processor_for(GenericResource)
 def add_dublin_core(request, page):
+
+    class AddUserForm(forms.Form):
+        user = forms.ModelChoiceField(User.objects.all(), widget=autocomplete_light.ChoiceWidget("UserAutocomplete"))
+
+    class AddGroupForm(forms.Form):
+        group = forms.ModelChoiceField(Group.objects.all(), widget=autocomplete_light.ChoiceWidget("GroupAutocomplete"))
+
     from dublincore import models as dc
 
     class DCTerm(forms.ModelForm):
@@ -263,6 +311,11 @@ def add_dublin_core(request, page):
         'view_groups' : set(cm.view_groups.all()),
         'edit_users' : set(cm.edit_users.all()),
         'edit_groups' : set(cm.edit_groups.all()),
+        'add_owner_user_form' : AddUserForm(),
+        'add_view_user_form' : AddUserForm(),
+        'add_edit_user_form' : AddUserForm(),
+        'add_view_group_form' : AddGroupForm(),
+        'add_edit_group_form' : AddGroupForm(),
     }
 
 
@@ -281,7 +334,8 @@ def create_resource(request, *args, **kwargs):
         dcterms = [
             { 'term': 'T', 'content': frm.cleaned_data['title'] },
             { 'term': 'AB',  'content': frm.cleaned_data['abstract'] or frm.cleaned_data['title']},
-            { 'term': 'DT', 'content': now().isoformat()}
+            { 'term': 'DT', 'content': now().isoformat()},
+            { 'term': 'DC', 'content': now().isoformat()}
         ]
         for cn in frm.cleaned_data['contributors'].split(','):
             cn = cn.strip()
@@ -303,7 +357,7 @@ def create_resource(request, *args, **kwargs):
 
 @login_required
 def get_file(request, *args, **kwargs):
-    from icommands import RodsSession
+    from django_irods.icommands import RodsSession
     name = kwargs['name']
     session = RodsSession("./", "/usr/bin")
     session.runCmd("iinit");
