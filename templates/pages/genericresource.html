@@ -132,14 +132,18 @@
     <div class="row" id="sharing">
         <div class="col-lg-12">
         <h2>Sharing</h2>
-
-        {% editable cm.public %}
+            <form action="/hsapi/_internal/{{ cm.short_id }}/change-permissions/" method="POST">
+            {% csrf_token %}
             {% if cm.public %}
                 This resource can be viewed and downloaded by anyone.
+                <input name="t" type="hidden" value="make_private"/>
+                <button type="submit" class="btn btn-danger">Make private</button>
             {% else %}
                 This resource can be viewed and downloaded only by designated users or research groups.
+                <input name="t" type="hidden" value="make_public"/>
+                <button type="submit" class="btn btn-danger">Make public</button>
             {% endif %}
-        {% endeditable %}
+            </form>
 
         <div style="padding-top:0.5em">
         {% if user == cm.user %}
@@ -165,18 +169,28 @@
                 </a>
               </h4>
             </div>
-            <div id="collapseOne" class="panel-collapse collapse in">
+            <div id="collapseOne" class="panel-collapse collapse">
               <div class="panel-body">
                     <form action="/hsapi/_internal/{{ cm.short_id }}/change-permissions/" method="POST">
                         {% csrf_token %}
                         <small>Hold down "Control", or "Command" on a Mac, to select more than one.</small>
-                        <select name="designees" id="owners-select" multiple class="form-control" size="20">
-                            {% for u in users %}
-                                <option value="{{ u.pk }}" {% if u in owners %}selected{% endif %}>{{ u|best_name }}</option>
+                        <select name="designees" id="owners-select" multiple class="form-control" size="{{ owners.count }}">
+                            {% for u in owners %}
+                                <option value="{{ u.pk }}" selected>{{ u|best_name }} ({{ u.username }})</option>
                             {% endfor %}
                         </select>
                         <input name="t" value="owners" type="hidden"/>
                         <button type="submit" class="btn btn-primary btn-block">Update access list</button>
+                    </form>
+                    <form class="form-inline" action="/hsapi/_internal/{{ cm.short_id }}/change-permissions/" method="POST" style="padding-top:0.3em">
+                        {% csrf_token %}
+                        <div class="form-group">
+                            <label for="">Add user (first, last, email, or username)</label>
+                        <input name="t" value="add_owner" type="hidden"/>
+                        {{ add_owner_user_form.user }}
+                            <button type="submit" class="btn btn-primary">Add</button>
+                        </div>
+
                     </form>
               </div>
             </div>
@@ -195,13 +209,23 @@
                 <form action="/hsapi/_internal/{{ cm.short_id }}/change-permissions/" method="POST">
                     {% csrf_token %}
                     <small>Hold down "Control", or "Command" on a Mac, to select more than one.</small>
-                    <select name="designees" id="edit_users-select" multiple class="form-control" size="20">
-                        {% for u in users %}
-                            <option value="{{ u.pk }}" {% if u in edit_users %}selected{% endif %}>{{ u|best_name }}</option>
+                    <select name="designees" id="edit_users-select" multiple class="form-control" size="{{ edit_users.count }}">
+                        {% for u in edit_users %}
+                            <option value="{{ u.pk }}" selected>{{ u|best_name }} ({{ u.username }})</option>
                         {% endfor %}
                     </select>
                     <input name="t" value="edit_users" type="hidden"/>
                     <button type="submit" class="btn btn-primary btn-block">Update access list</button>
+                </form>
+                <form class="form-inline" action="/hsapi/_internal/{{ cm.short_id }}/change-permissions/" method="POST" style="padding-top:0.3em">
+                        {% csrf_token %}
+                        <div class="form-group">
+                            <label for="">Add user (first, last, email, or username)</label>
+                        <input name="t" value="add_edit_user" type="hidden"/>
+                        {{ add_edit_user_form.user }}
+                            <button type="submit" class="btn btn-primary">Add</button>
+                        </div>
+
                 </form>
               </div>
             </div>
@@ -218,18 +242,26 @@
             <div id="collapseThree" class="panel-collapse collapse">
               <div class="panel-body">
                 <form action="/hsapi/_internal/{{ cm.short_id }}/change-permissions/" method="POST">
-                    <form action="/hsapi/_internal/{{ cm.short_id }}/change-permissions/" method="POST">
                         {% csrf_token %}
                         <small>Hold down "Control", or "Command" on a Mac, to select more than one.</small>
-                        <select name="designees" id="edit_groups-select" multiple class="form-control" size="20">
-                            {% for u in groups %}
+                        <select name="designees" id="edit_groups-select" multiple class="form-control" size="{{ edit_groups.count }}">
+                            {% for u in edit_groups %}
                                 <option value="{{ u.pk }}" {% if u in edit_groups %}selected{% endif %}>{{ u }}</option>
                             {% endfor %}
                         </select>
                         <input name="t" value="edit_groups" type="hidden"/>
                         <button type="submit" class="btn btn-primary btn-block">Update access list</button>
-                    </form>
                 </form>
+              <form class="form-inline" action="/hsapi/_internal/{{ cm.short_id }}/change-permissions/" method="POST" style="padding-top:0.3em">
+                        {% csrf_token %}
+                        <div class="form-group">
+                            <label for="">Add group by name</label>
+                        <input name="t" value="add_edit_group" type="hidden"/>
+                        {{ add_edit_group_form.user }}
+                            <button type="submit" class="btn btn-primary">Add</button>
+                        </div>
+
+                    </form>
               </div>
             </div>
           </div>
@@ -248,14 +280,24 @@
                 <form action="/hsapi/_internal/{{ cm.short_id }}/change-permissions/" method="POST">
                     {% csrf_token %}
                     <small>Hold down "Control", or "Command" on a Mac, to select more than one.</small>
-                    <select name="designees" id="view_users-select" multiple class="form-control" size="20">
-                        {% for u in users %}
+                    <select name="designees" id="view_users-select" multiple class="form-control" size="{{ view_users.count }}">
+                        {% for u in view_users %}
                             <option value="{{ u.pk }}" {% if u in view_users %}selected{% endif %}>{{ u|best_name }}</option>
                         {% endfor %}
                     </select>
                     <input name="t" value="view_users" type="hidden"/>
                     <button type="submit" class="btn btn-primary btn-block">Update access list</button>
                 </form>
+              <form class="form-inline" action="/hsapi/_internal/{{ cm.short_id }}/change-permissions/" method="POST" style="padding-top:0.3em">
+                        {% csrf_token %}
+                        <div class="form-group">
+                            <label for="">Add user (first, last, email, or username)</label>
+                        <input name="t" value="add_view_user" type="hidden"/>
+                        {{ add_view_user_form.user }}
+                            <button type="submit" class="btn btn-primary">Add</button>
+                        </div>
+
+                    </form>
               </div>
             </div>
           </div>
@@ -273,14 +315,24 @@
                 <form action="/hsapi/_internal/{{ cm.short_id }}/change-permissions/" method="POST">
                     {% csrf_token %}
                     <small>Hold down "Control", or "Command" on a Mac, to select more than one.</small>
-                    <select name="designees" id="view_groups-select" multiple class="form-control" size="20">
-                        {% for u in groups %}
+                    <select name="designees" id="view_groups-select" multiple class="form-control" size="{{ view_groups.count }}">
+                        {% for u in view_groups %}
                             <option value="{{ u.pk }}" {% if u in view_groups %}selected{% endif %}>{{ u }}</option>
                         {% endfor %}
                     </select>
                     <input name="t" value="view_groups" type="hidden"/>
                     <button type="submit" class="btn btn-primary btn-block">Update access list</button>
                 </form>
+              <form class="form-inline" action="/hsapi/_internal/{{ cm.short_id }}/change-permissions/" method="POST" style="padding-top:0.3em">
+                        {% csrf_token %}
+                        <div class="form-group">
+                            <label for="">Add group by name</label>
+                        <input name="t" value="add_view_group" type="hidden"/>
+                        {{ add_view_group_form.user }}
+                            <button type="submit" class="btn btn-primary">Add</button>
+                        </div>
+
+                    </form>
               </div>
             </div>
           </div>
