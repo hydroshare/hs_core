@@ -54,8 +54,8 @@ def add_file_to_resource(request, *args, **kwargs):
         raise TypeError('shortkey must be specified...')
 
     res, _, _ = authorize(request, shortkey, edit=True, full=True, superuser=True)
-    f =request.FILES['file']
-    res.files.add(ResourceFile(content_object=res, resource_file=f))
+    for f in request.FILES.getlist('files'):
+        res.files.add(ResourceFile(content_object=res, resource_file=f))
     resource_modified(res, request.user)
     return HttpResponseRedirect(request.META['HTTP_REFERER'])
 
@@ -330,7 +330,6 @@ class CreateResourceForm(forms.Form):
 def create_resource(request, *args, **kwargs):
     frm = CreateResourceForm(request.POST)
     if frm.is_valid():
-
         dcterms = [
             { 'term': 'T', 'content': frm.cleaned_data['title'] },
             { 'term': 'AB',  'content': frm.cleaned_data['abstract'] or frm.cleaned_data['title']},
@@ -350,7 +349,7 @@ def create_resource(request, *args, **kwargs):
             title=frm.cleaned_data['title'],
             keywords=[k.strip() for k in frm.cleaned_data['keywords'].split(',')] if frm.cleaned_data['keywords'] else None, 
             dublin_metadata=dcterms,
-            files=request.FILES.values(),
+            files=request.FILES.getlist('files'),
             content=frm.cleaned_data['abstract'] or frm.cleaned_data['title']
         )
         return HttpResponseRedirect(res.get_absolute_url())
