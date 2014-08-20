@@ -203,7 +203,6 @@ class AbstractMetaDataElement(models.Model):
 class ExternalProfileLink(models.Model):
     type = models.CharField(max_length=50)
     url = models.URLField()
-    #creator = models.ForeignKey(Creator, related_name='external_links')
 
     object_id = models.PositiveIntegerField()
     content_type = models.ForeignKey(ContentType)
@@ -213,15 +212,15 @@ class ExternalProfileLink(models.Model):
         unique_together = ("type", "url", "content_type")
 
 class Party(AbstractMetaDataElement):
-    description = models.URLField(null=True, blank=True)
+    description = models.URLField(blank=True)
     name = models.CharField(max_length=100)
-    organization = models.CharField(max_length=200, null=True, blank=True)
-    email = models.EmailField(null=True, blank=True)
-    address = models.CharField(max_length=250, null=True, blank=True)
-    phone = models.CharField(max_length=25, null=True, blank=True)
-    homepage = models.URLField(null=True, blank=True)
-    researcherID = models.URLField(null=True, blank=True)
-    researchGateID = models.URLField(null=True, blank=True)
+    organization = models.CharField(max_length=200, blank=True)
+    email = models.EmailField(blank=True)
+    address = models.CharField(max_length=250, blank=True)
+    phone = models.CharField(max_length=25, blank=True)
+    homepage = models.URLField(blank=True)
+    researcherID = models.URLField(blank=True)
+    researchGateID = models.URLField(blank=True)
     external_links = generic.GenericRelation(ExternalProfileLink)
 
     def __unicode__(self):
@@ -911,7 +910,7 @@ class Publisher(AbstractMetaDataElement):
 
 class Language(AbstractMetaDataElement):
     term = 'Language'
-    code = models.CharField(max_length=3, choices= iso_languages )
+    code = models.CharField(max_length=3, choices=iso_languages )
 
     def __unicode__(self):
         return self.code
@@ -1197,8 +1196,8 @@ class Source(AbstractMetaDataElement):
 
 class Rights(AbstractMetaDataElement):
     term = 'Rights'
-    statement = models.TextField(null=True, blank=True)
-    url = models.URLField(null=True, blank=True)
+    statement = models.TextField(blank=True)
+    url = models.URLField(blank=True)
 
     class Meta:
         unique_together = ("content_type", "object_id")
@@ -1617,7 +1616,7 @@ class GenericResource(Page, RichText, AbstractResource):
             self.metadata.set_resource(res=self)
             self.metadata.save()
 
-    metadata = models.OneToOneField(CoreMetaData, null=True, blank=False)
+    metadata = models.OneToOneField(CoreMetaData, null=True, blank=True)
 
 
     class Meta:

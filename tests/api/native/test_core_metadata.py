@@ -40,15 +40,6 @@ class TestCoreMetadata(TestCase):
         if created:
             self.res.owners.add(self.user)
 
-        self.resNetCDF = NetCDFResource.objects.create(
-            user=self.user,
-            title='netcdf resource',
-            creator=self.user,
-            last_changed_by=self.user,
-            doi='doi1000100010002'
-        )
-        self.resNetCDF.owners.add(self.user)
-
 
     def tearDown(self):
         User.objects.all().delete()
@@ -57,9 +48,7 @@ class TestCoreMetadata(TestCase):
         Creator.objects.all().delete()
         Contributor.objects.all().delete()
         CoreMetaData.objects.all().delete()
-        Variable.objects.all().delete()
         Coverage.objects.all().delete()
-        NetCDFResource.objects.all().delete()
         Rights.objects.all().delete()
         Title.objects.all().delete()
         Publisher.objects.all().delete()
@@ -934,6 +923,5 @@ class TestCoreMetadata(TestCase):
         # TODO: check all other elements (their text values and/or attribute values)
 
         print self.res.metadata.get_xml()
-
 
 
