@@ -701,3 +701,53 @@ def resolve_doi(doi):
 
     """
     return utils.get_resource_by_doi(doi).short_id
+
+def create_metadata_element(resource_short_id, element_model_name, **kwargs):
+    """
+    Creates a specific type of metadata element for a given resource
+
+    :param resource_short_id: id of the resource for which a metadata element needs to be created
+    :param element_model_name: metadata element name (e.g., creator)
+    :param kwargs: metadata element attribute name/value pairs for all those attributes that require a value
+    :return:
+    """
+    res = utils.get_resource_by_shortkey(resource_short_id)
+    res.metadata.set_resource(res)
+    res.metadata.create_element(element_model_name, **kwargs)
+
+def update_metadata_element(resource_short_id, element_model_name, element_id, **kwargs):
+    """
+    Updates the data associated with a metadata element for a specified resource
+
+    :param resource_short_id: id of the resource for which a metadata element needs to be updated
+    :param element_model_name: metadata element name (e.g., creator)
+    :param element_id: id of the metadata element to be updated
+    :param kwargs: metadata element attribute name/value pairs for all those attributes that need update
+    :return:
+    """
+    res = utils.get_resource_by_shortkey(resource_short_id)
+    res.metadata.set_resource(res)
+    res.metadata.update_element(element_model_name, element_id, **kwargs)
+
+def delete_metadata_element(resource_short_id, element_model_name, element_id):
+    """
+    Deletes a specific type of metadata element for a specified resource
+
+    :param resource_short_id: id of the resource for which metadata element to be deleted
+    :param element_model_name: metadata element name (e.g., creator)
+    :param element_id: id of the metadata element to be deleted
+    :return:
+    """
+    res = utils.get_resource_by_shortkey(resource_short_id)
+    res.metadata.set_resource(res)
+    res.metadata.delete_element(element_model_name, element_id)
+
+def get_science_metadata_xml(resource_short_id):
+    """
+    Gets science metadata as an xml string for a specified resource
+
+    :param resource_short_id: id of the resource
+    :return: science metadata as an xml string
+    """
+    res = utils.get_resource_by_shortkey(resource_short_id)
+    return res.metadata.get_xml()

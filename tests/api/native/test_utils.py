@@ -44,7 +44,7 @@ class TestUtils(TestCase):
         Group.objects.all().delete()
         GenericResource.objects.all().delete()
         QualifiedDublinCoreElement.objects.all().delete()
-        Organization.objects.all().delete()
+
 
     def test_get_resource_types(self):
         # first time gets them anew
@@ -109,9 +109,11 @@ class TestUtils(TestCase):
             msg='lookup by group name failed'
         )
 
+
     # not really a unit test. primarily this function
     # allows us to see the generated science metadata xml
     def test_serialize_science_metadata_xml(self):
+
         QualifiedDublinCoreElement.objects.create(
             term='AB',
             qualifier=None,
@@ -147,15 +149,6 @@ class TestUtils(TestCase):
             content='contributor_3@usu.edu',
             content_object=self.res
         )
-
-        #person = Person.objects.create(uniqueCode='101', name='Pabitra Dash', givenName='Pabitra', familyName='Dash', jobTitle='Developer')
-
-        # QualifiedDublinCoreElement.objects.create(
-        #     term='CN',
-        #     qualifier=None,
-        #     content=person.uniqueCode,
-        #     content_object=self.res
-        # )
 
         QualifiedDublinCoreElement.objects.create(
             term='DSC',
