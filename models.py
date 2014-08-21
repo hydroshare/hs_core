@@ -1242,7 +1242,7 @@ class Rights(AbstractMetaDataElement):
 
 # This model has a one-to-one relation with the AbstractResource model
 class CoreMetaData(models.Model):
-    from django.contrib.sites.models import Site
+    #from django.contrib.sites.models import Site
     _domain = 'hydroshare.org'  #Site.objects.get_current() # this one giving error since the database does not have a related table called 'django_site'
 
     XML_HEADER = '''<?xml version="1.0"?>
@@ -1450,8 +1450,6 @@ class CoreMetaData(models.Model):
             dc_person = etree.SubElement(parent_element, '{%s}contributor' % self.NAMESPACES['dc'])
 
         dc_person_rdf_Description = etree.SubElement(dc_person, '{%s}Description' % self.NAMESPACES['rdf'])
-        # if person.description:
-        #     dc_person_rdf_Description.set('{%s}resource' % self.NAMESPACES['rdf'], person.description)
 
         hsterms_name = etree.SubElement(dc_person_rdf_Description, '{%s}name' % self.NAMESPACES['hsterms'])
         hsterms_name.text = person.name
@@ -1499,13 +1497,8 @@ class CoreMetaData(models.Model):
         model = ContentType.objects.get(model=element_model_name)
         if model:
             if issubclass(model.model_class(), AbstractMetaDataElement):
-                # add the self.id to the kwargs before calling create()
-                # so that specific element can prevent creation of duplicate element if they wish
-                #kwargs['metadata_id']= self.id
                 kwargs['metadata_obj']= self
                 element = model.model_class().create(**kwargs)
-                #element.meta_data = self
-                #element.content_object = self
                 element.save()
             else:
                 raise ValidationError("Metadata element type:%s is not supported." % element_model_name)
