@@ -19,9 +19,9 @@ from dublincore import models as dc
 from django.conf import settings
 from django.core.files.storage import DefaultStorage
 from django.core.exceptions import ObjectDoesNotExist, ValidationError
-#from hs_core.hydroshare import users
 from languages_iso import languages as iso_languages
 from dateutil import parser
+from django.utils import simplejson as json
 
 class GroupOwnership(models.Model):
     group = models.ForeignKey(Group)
@@ -967,7 +967,6 @@ class Language(AbstractMetaDataElement):
         else:
             raise ObjectDoesNotExist("No language element was found for id:%d." % element_id)
 
-
 class Coverage(AbstractMetaDataElement):
     COVERAGE_TYPES = (
         ('box', 'Box'),
@@ -977,16 +976,38 @@ class Coverage(AbstractMetaDataElement):
 
     term = 'Coverage'
     type = models.CharField(max_length=20, choices=COVERAGE_TYPES)
-    value = models.CharField(max_length=200)
+    """
+    _value field stores a json string. The content of the json
+     string depends on the type of coverage as shown below. All keys shown in json string are required.
+
+     For coverage type: period
+         _value = "{'name':coverage name value here, 'start':start date value, 'end':end date value, 'scheme':'W3C-DTF}"
+
+     For coverage type: point
+         _value = "{'name':coverage name value here, 'east':east coordinate value, 'north':north coordinate value}"
+
+     For coverage type: box
+         _value = "{'name':coverage name value here, 'northlimit':northenmost coordinate value,
+                    'eastlimit':easternmost coordinate value, 'southlimit':southernmost coordinate value,
+                    'westlimit':westernmost coordinate value}"
+    """
+    _value = models.CharField(max_length=1024)
+
+    @property
+    def value(self):
+        print self._value
+        return json.loads(self._value)
 
     @classmethod
     def create(cls, **kwargs):
+        # TODO: validate coordinate values
         if 'type' in kwargs:
             # check the type doesn't already exists - we allow only one coverage type per resource
             if 'metadata_obj' in kwargs:
                 metadata_obj = kwargs['metadata_obj']
                 metadata_type = ContentType.objects.get_for_model(metadata_obj)
-                coverage = Coverage.objects.filter(type= kwargs['type'], object_id=metadata_obj.id, content_type=metadata_type).first()
+                coverage = Coverage.objects.filter(type= kwargs['type'], object_id=metadata_obj.id,
+                                                   content_type=metadata_type).first()
                 if coverage:
                     raise ValidationError('Coverage type:%s already exists' % kwargs['type'])
 
@@ -995,18 +1016,38 @@ class Coverage(AbstractMetaDataElement):
 
                 if kwargs['type'] == 'box':
                     # check that there is not already a coverage of point type
-                    coverage = Coverage.objects.filter(type= 'point', object_id=metadata_obj.id, content_type=metadata_type).first()
+                    coverage = Coverage.objects.filter(type= 'point', object_id=metadata_obj.id,
+                                                       content_type=metadata_type).first()
                     if coverage:
                         raise ValidationError("Coverage type 'Box' can't be created when there is a coverage of type 'Point'")
                 elif kwargs['type'] == 'point':
                     # check that there is not already a coverage of box type
-                    coverage = Coverage.objects.filter(type= 'box', object_id=metadata_obj.id, content_type=metadata_type).first()
+                    coverage = Coverage.objects.filter(type= 'box', object_id=metadata_obj.id,
+                                                       content_type=metadata_type).first()
                     if coverage:
                         raise ValidationError("Coverage type 'Point' can't be created when there is a coverage of type 'Box'")
 
                 if 'value' in kwargs:
-                    dt = Coverage.objects.create(type=kwargs['type'], value=kwargs['value'], content_object=metadata_obj)
-                    return dt
+                    if isinstance(kwargs['value'], dict):
+                        if not 'name' in kwargs['value']:
+                            raise ValidationError("Coverage name attribute is missing.")
+
+                        cls._validate_coverage_type_value_attributes(kwargs['type'], kwargs['value'])
+
+                        if kwargs['type']== 'period':
+                            value_dict = {k: v for k, v in kwargs['value'].iteritems() if k in ('name', 'start', 'end')}
+                        elif kwargs['type']== 'point':
+                            value_dict = {k: v for k, v in kwargs['value'].iteritems() if k in ('name', 'east', 'north')}
+                        elif kwargs['type']== 'box':
+                            value_dict = {k: v for k, v in kwargs['value'].iteritems()
+                                          if k in ('name','northlimit', 'eastlimit', 'southlimit', 'westlimit')}
+
+                        value_json = json.dumps(value_dict)
+                        cov = Coverage.objects.create(type=kwargs['type'], _value=value_json,
+                                                      content_object=metadata_obj)
+                        return cov
+                    else:
+                        raise ValidationError('Invalid coverage value format.')
                 else:
                     raise ValidationError('Coverage value is missing.')
             else:
@@ -1014,10 +1055,11 @@ class Coverage(AbstractMetaDataElement):
         else:
             raise ValidationError("Type of coverage element is missing.")
 
-
     @classmethod
     def update(cls, element_id, **kwargs):
+        # TODO: validate coordinate values
         cov = Coverage.objects.get(id=element_id)
+        changing_coverage_type = False
         if cov:
             if 'type' in kwargs:
                 if cov.type != kwargs['type']:
@@ -1026,10 +1068,44 @@ class Coverage(AbstractMetaDataElement):
                                                content_type__pk=cov.content_type.id).count()> 0:
                         raise ValidationError('Coverage type:%s already exists.' % kwargs['type'])
                     else:
-                        cov.type = kwargs['type']
+                        if 'value' in kwargs:
+                            if isinstance(kwargs['value'], dict):
+                                cls._validate_coverage_type_value_attributes(kwargs['type'], kwargs['value'])
+                            else:
+                                raise ValidationError('Invalid coverage value format.')
+                        else:
+                            raise ValidationError('Coverage value is missing.')
+
+                        changing_coverage_type = True
 
             if 'value' in kwargs:
-                cov.value = kwargs['value']
+                if  not isinstance(kwargs['value'], dict):
+                    raise ValidationError('Invalid coverage value format.')
+
+                if changing_coverage_type:
+                    value_dict = {}
+                    cov.type = kwargs['type']
+                else:
+                    value_dict = cov.value
+
+                if 'name' in kwargs['value']:
+                    value_dict['name'] = kwargs['value']['name']
+
+                if cov.type == 'period':
+                    for item_name in ('start', 'end'):
+                        if item_name in kwargs['value']:
+                            value_dict[item_name] = kwargs['value'][item_name]
+                elif cov.type == 'point':
+                    for item_name in ('east', 'north'):
+                        if item_name in kwargs['value']:
+                            value_dict[item_name] = kwargs['value'][item_name]
+                elif cov.type == 'box':
+                    for item_name in ('northlimit', 'eastlimit', 'southlimit', 'westlimit'):
+                        if item_name in kwargs['value']:
+                            value_dict[item_name] = kwargs['value'][item_name]
+
+                value_json = json.dumps(value_dict)
+                cov._value = value_json
             cov.save()
         else:
             raise ObjectDoesNotExist("No coverage element was found for the provided id:%s" % element_id)
@@ -1038,6 +1114,29 @@ class Coverage(AbstractMetaDataElement):
     @classmethod
     def remove(cls, element_id):
         raise ValidationError("Coverage element can't be deleted.")
+
+    @classmethod
+    def _validate_coverage_type_value_attributes(cls, coverage_type, value_dict):
+        if coverage_type== 'period':
+            if not 'start' in value_dict or not 'end' in value_dict:
+                raise ValidationError("For coverage of type 'period' values for start date and end date needed.")
+            else:
+                # validate the date values
+                try:
+                    start_dt = parser.parse(value_dict['start'])
+                except TypeError:
+                    raise TypeError("Invalid start date. Not a valid date value.")
+                try:
+                    end_dt = parser.parse(value_dict['end'])
+                except TypeError:
+                    raise TypeError("Invalid end date. Not a valid date value.")
+        elif coverage_type== 'point':
+            if not 'east' in value_dict or not 'north' in value_dict:
+                raise ValidationError("For coverage of type 'period' values for both start date and end date are needed.")
+        elif coverage_type== 'box':
+            for value_item in ['name','northlimit', 'eastlimit', 'southlimit', 'westlimit']:
+                if not value_item in value_dict:
+                    raise ValidationError("For coverage of type 'box' values for one or more bounding box limits is missing.")
 
 class Format(AbstractMetaDataElement):
     term = 'Format'
@@ -1474,7 +1573,20 @@ class CoreMetaData(models.Model):
             cov_dcterm = '{%s}' + coverage.type
             dc_coverage_dcterms = etree.SubElement(dc_coverage, cov_dcterm % self.NAMESPACES['dcterms'])
             rdf_coverage_value = etree.SubElement(dc_coverage_dcterms, '{%s}value' % self.NAMESPACES['rdf'])
-            rdf_coverage_value.text = coverage.value
+            if coverage.type == 'period':
+                cov_value = 'name=%s; start=%s; end=%s; scheme=W3C-DTF' %(coverage.value['name'],
+                                                          arrow.get(coverage.value['start'].format(self.DATE_FORMAT)),
+                                                          arrow.get(coverage.value['start'].format(self.DATE_FORMAT)))
+            elif coverage.type == 'point':
+                cov_value = 'name=%s; east=%s; north=%s' %(coverage.value['name'],
+                                                                           coverage.value['east'],
+                                                                           coverage.value['north'])
+            else: # this is box type
+                cov_value = 'name=%s; northlimit=%s; eastlimit=%s; southlimit=%s; westlimit=%s' \
+                            %(coverage.value['name'], coverage.value['northlimit'], coverage.value['eastlimit'],
+                              coverage.value['southlimit'], coverage.value['westlimit'])
+
+            rdf_coverage_value.text = cov_value
 
         for dt in self.dates.all():
             dc_date = etree.SubElement(rdf_Description, '{%s}date' % self.NAMESPACES['dc'])
