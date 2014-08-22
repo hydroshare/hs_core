@@ -29,6 +29,8 @@ class TestCoreMetadata(TestCase):
             self.tearDown()
             self.user = User.objects.create_user('user1', email='user1@nowhere.com')
 
+        md = CoreMetaData()
+        md.save()
         self.res, created = GenericResource.objects.get_or_create(
             user=self.user,
             title='Generic resource',
@@ -37,6 +39,7 @@ class TestCoreMetadata(TestCase):
             doi='doi1000100010001',
             public=False
         )
+
         if created:
             self.res.owners.add(self.user)
 
@@ -63,6 +66,8 @@ class TestCoreMetadata(TestCase):
         Language.objects.all().delete()
 
     def test_auto_element_creation(self):
+        # this test will pass only if are adding the relevant metadata elements
+        # in the resource post-save signal handler
         # all these will fail as these elements are not being created in the resource creation signal handler yet
         self.assertEqual(self.res.metadata.title.value, self.res.title, msg='resource title did not match')
 
@@ -84,12 +89,17 @@ class TestCoreMetadata(TestCase):
 
 
     def test_title_create(self):
+        # this test will pass only if have added the title element for the resource
+        # in the resource post-save signal handler
         # trying to create a title element for a resource should raise an exception
         self.assertRaises(Exception, lambda :resource.create_metadata_element(self.res.short_id,'title', value='new resource'))
 
     def test_creator(self):
+        # this test will pass only if we have added the first creator for the resource
+        # in the resource post-save signal handler
         # add a creator element
         resource.create_metadata_element(self.res.short_id,'creator', name='John Smith')
+
         # number of creators at this point should be 2
         self.assertEqual(self.res.metadata.creators.all().count(), 2, msg='Number of creators not equal to 2')
         self.assertIn('John Smith', [cr.name for cr in self.res.metadata.creators.all()], msg="Creator 'John Smith' was not found")
@@ -302,6 +312,8 @@ class TestCoreMetadata(TestCase):
         self.assertIn('http://usu.edu/profile/LH001', [link.url for link in con_lisa.external_links.all()], msg="Contributor 'Lisa' does not have link url: 'http://usu.edu/profile/LH001'")
 
     def test_title(self):
+        # this test will pass only if we have added the title element for the resource
+        # in the resource post-save signal handler
         # test a 2nd title can't be added
         self.assertRaises(Exception, lambda : resource.create_metadata_element(self.res.short_id,'title', value="another title"))
 
@@ -348,6 +360,8 @@ class TestCoreMetadata(TestCase):
         self.assertEqual(self.res.metadata.coverages.all().count(), 2, msg="Total overages not equal 2.")
 
     def test_date(self):
+        # this test will pass only if we have added the creation and modified dates for the resource
+        # in the resource post-save signal handler
         # test that when a resource is created it already generates the 'created' and 'modified' date elements
         self.assertEqual(self.res.metadata.dates.all().count(), 2, msg="Number of date elements not equal to 2.")
         self.assertIn('created', [dt.type for dt in self.res.metadata.dates.all()], msg="Date element type 'Created' does not exist")
@@ -445,6 +459,8 @@ class TestCoreMetadata(TestCase):
         resource.delete_metadata_element(self.res.short_id,'date', dt_valid.id)
 
     def test_description(self):
+        # this test will pass only if we have added the description element for the resource
+        # in the resource post-save signal handler
         # test that the resource metadata already has the description element
         self.assertEqual(self.res.metadata.description.abstract, 'Generic resource')
 
@@ -494,6 +510,8 @@ class TestCoreMetadata(TestCase):
         self.assertEqual(self.res.metadata.formats.all().count(), 0, msg="Number of format elements not equal to 0.")
 
     def test_identifier(self):
+        # this test will pass only if we have added the hydroshare identifier for the resource
+        # in the resource post-save signal handler
         # when a resource is created there should be 1 identifier element
         self.assertEqual(self.res.metadata.identifiers.all().count(), 1, msg="Number of identifier elements not equal to 1.")
         self.assertIn('hydroShareIdentifier', [id.name for id in self.res.metadata.identifiers.all()],
@@ -809,6 +827,7 @@ class TestCoreMetadata(TestCase):
 
         # add a type element
         resource.create_metadata_element(self.res.short_id, 'type', url="http://hydroshare.org/generic")
+        self.assertEqual(self.res.metadata.type.url, "http://hydroshare.org/generic")
 
         # add another creator with all sub_elements
         cr_name = 'Mike Sundar'
@@ -923,5 +942,5 @@ class TestCoreMetadata(TestCase):
         # TODO: check all other elements (their text values and/or attribute values)
 
         print self.res.metadata.get_xml()
-
+        print (bad)
 

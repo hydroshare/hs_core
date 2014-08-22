@@ -212,15 +212,15 @@ class ExternalProfileLink(models.Model):
         unique_together = ("type", "url", "content_type")
 
 class Party(AbstractMetaDataElement):
-    description = models.URLField(blank=True)
+    description = models.URLField(null=True, blank=True)
     name = models.CharField(max_length=100)
-    organization = models.CharField(max_length=200, blank=True)
-    email = models.EmailField(blank=True)
-    address = models.CharField(max_length=250, blank=True)
-    phone = models.CharField(max_length=25, blank=True)
-    homepage = models.URLField(blank=True)
-    researcherID = models.URLField(blank=True)
-    researchGateID = models.URLField(blank=True)
+    organization = models.CharField(max_length=200, null=True, blank=True)
+    email = models.EmailField(null=True, blank=True)
+    address = models.CharField(max_length=250, null=True, blank=True)
+    phone = models.CharField(max_length=25, null=True, blank=True)
+    homepage = models.URLField(null=True, blank=True)
+    researcherID = models.URLField(null=True, blank=True)
+    researchGateID = models.URLField(null=True, blank=True)
     external_links = generic.GenericRelation(ExternalProfileLink)
 
     def __unicode__(self):
@@ -967,6 +967,7 @@ class Language(AbstractMetaDataElement):
         else:
             raise ObjectDoesNotExist("No language element was found for id:%d." % element_id)
 
+
 class Coverage(AbstractMetaDataElement):
     COVERAGE_TYPES = (
         ('box', 'Box'),
@@ -1196,8 +1197,8 @@ class Source(AbstractMetaDataElement):
 
 class Rights(AbstractMetaDataElement):
     term = 'Rights'
-    statement = models.TextField(blank=True)
-    url = models.URLField(blank=True)
+    statement = models.TextField(null=True, blank=True)
+    url = models.URLField(null=True, blank=True)
 
     class Meta:
         unique_together = ("content_type", "object_id")
@@ -1240,6 +1241,116 @@ class Rights(AbstractMetaDataElement):
     def remove(cls, element_id):
         raise ValidationError("Rights element of a resource can't be deleted.")
 
+
+
+
+class AbstractResource(ResourcePermissionsMixin):
+    """
+    All hydroshare objects inherit from this mixin.  It defines things that must
+    be present to be considered a hydroshare resource.  Additionally, all
+    hydroshare resources should inherit from Page.  This gives them what they
+    need to be represented in the Mezzanine CMS.
+
+    In some cases, it is possible that the order of inheritence matters.  Best
+    practice dictates that you list pages.Page first and then other classes:
+
+        class MyResourceContentType(pages.Page, hs_core.AbstractResource):
+            ...
+    """
+    last_changed_by = models.ForeignKey(User,
+                                        help_text='The person who last changed the resource',
+                                        related_name='last_changed_%(app_label)s_%(class)s',
+                                        null=True
+    )
+    dublin_metadata = generic.GenericRelation(
+        'dublincore.QualifiedDublinCoreElement',
+        help_text='The dublin core metadata of the resource'
+    )
+    files = generic.GenericRelation('hs_core.ResourceFile', help_text='The files associated with this resource')
+    bags = generic.GenericRelation('hs_core.Bags', help_text='The bagits created from versions of this resource')
+    short_id = models.CharField(max_length=32, default=lambda: uuid4().hex, db_index=True)
+    doi = models.CharField(max_length=1024, blank=True, null=True, db_index=True,
+                           help_text='Permanent identifier. Never changes once it\'s been set.')
+    comments = CommentsField()
+
+    # this is to establish a relationship between a resource and
+    # any metadata container object (e.g., CoreMetaData object)
+    object_id = models.PositiveIntegerField(null=True, blank=True)
+    content_type = models.ForeignKey(ContentType, null=True, blank=True)
+    content_object = generic.GenericForeignKey('content_type', 'object_id')
+
+    # this property needs to be overriden by any specific resource type
+    # that needs additional metadata elements on top of core metadata data elements
+    @property
+    def metadata(self):
+        md = CoreMetaData() # only this line needs to be changed when you override
+        return self._get_metadata(md)
+
+    def _get_metadata(self, metatdata_obj):
+        md_type = ContentType.objects.get_for_model(metatdata_obj)
+        res_type = ContentType.objects.get_for_model(self)
+        self.content_object = res_type.model_class().objects.get(id=self.id).content_object
+        if self.content_object:
+            return self.content_object
+        else:
+            metatdata_obj.save()
+            self.content_type = md_type
+            self.object_id = metatdata_obj.id
+            self.save()
+            return metatdata_obj
+
+    def extra_capabilites(self):
+        """This is not terribly well defined yet, but should return at the least a JSON serializable object of URL
+        endpoints where extra self-describing services exist and can be queried by the user in the form of
+        { "name" : "endpoint" }
+        """
+        return None
+
+    class Meta:
+        abstract = True
+        unique_together = ("content_type", "object_id")
+
+def get_path(instance, filename):
+    return os.path.join(instance.content_object.short_id, filename)
+
+class ResourceFile(models.Model):
+    object_id = models.PositiveIntegerField()
+    content_type = models.ForeignKey(ContentType)
+
+    content_object = generic.GenericForeignKey('content_type', 'object_id')
+    resource_file = models.FileField(upload_to=get_path, storage=IrodsStorage() if getattr(settings,'USE_IRODS', False) else DefaultStorage())
+
+class Bags(models.Model):
+    object_id = models.PositiveIntegerField()
+    content_type = models.ForeignKey(ContentType)
+
+    content_object = generic.GenericForeignKey('content_type', 'object_id')
+    bag = models.FileField(upload_to='bags', storage=IrodsStorage() if getattr(settings,'USE_IRODS', False) else DefaultStorage(), null=True) # actually never null
+    timestamp = models.DateTimeField(default=now, db_index=True)
+
+    class Meta:
+        ordering = ['-timestamp']
+
+
+
+class GenericResource(Page, RichText, AbstractResource):
+
+    class Meta:
+        verbose_name = 'Generic Hydroshare Resource'
+
+    def can_add(self, request):
+        return AbstractResource.can_add(self, request)
+
+    def can_change(self, request):
+        return AbstractResource.can_change(self, request)
+
+    def can_delete(self, request):
+        return AbstractResource.can_delete(self, request)
+
+    def can_view(self, request):
+        return AbstractResource.can_view(self, request)
+
+
 # This model has a one-to-one relation with the AbstractResource model
 class CoreMetaData(models.Model):
     #from django.contrib.sites.models import Site
@@ -1274,7 +1385,7 @@ class CoreMetaData(models.Model):
     _rights = generic.GenericRelation(Rights)
     _type = generic.GenericRelation(Type)
     _publisher = generic.GenericRelation(Publisher)
-    _resource = None
+    _resource = generic.GenericRelation(GenericResource)
 
     @property
     def title(self):
@@ -1290,7 +1401,7 @@ class CoreMetaData(models.Model):
 
     @property
     def resource(self):
-        return self._resource
+        return self._resource.all().first()
 
     @property
     def rights(self):
@@ -1321,9 +1432,6 @@ class CoreMetaData(models.Model):
                 'Source',
                 'Relation',
                 'Publisher']
-
-    def set_resource(self, res):
-        self._resource = res
 
 
     def get_xml(self):
@@ -1532,101 +1640,6 @@ class CoreMetaData(models.Model):
         allowed_elements = [el.lower() for el in self.get_supported_element_names()]
         return element_name.lower() in allowed_elements
 
-class AbstractResource(ResourcePermissionsMixin):
-    """
-    All hydroshare objects inherit from this mixin.  It defines things that must
-    be present to be considered a hydroshare resource.  Additionally, all
-    hydroshare resources should inherit from Page.  This gives them what they
-    need to be represented in the Mezzanine CMS.
-
-    In some cases, it is possible that the order of inheritence matters.  Best
-    practice dictates that you list pages.Page first and then other classes:
-
-        class MyResourceContentType(pages.Page, hs_core.AbstractResource):
-            ...
-    """
-    last_changed_by = models.ForeignKey(User,
-                                        help_text='The person who last changed the resource',
-                                        related_name='last_changed_%(app_label)s_%(class)s',
-                                        null=True
-    )
-    dublin_metadata = generic.GenericRelation(
-        'dublincore.QualifiedDublinCoreElement',
-        help_text='The dublin core metadata of the resource'
-    )
-    files = generic.GenericRelation('hs_core.ResourceFile', help_text='The files associated with this resource')
-    bags = generic.GenericRelation('hs_core.Bags', help_text='The bagits created from versions of this resource')
-    short_id = models.CharField(max_length=32, default=lambda: uuid4().hex, db_index=True)
-    doi = models.CharField(max_length=1024, blank=True, null=True, db_index=True,
-                           help_text='Permanent identifier. Never changes once it\'s been set.')
-    comments = CommentsField()
-
-
-    def extra_capabilites(self):
-        """This is not terribly well defined yet, but should return at the least a JSON serializable object of URL
-        endpoints where extra self-describing services exist and can be queried by the user in the form of
-        { "name" : "endpoint" }
-        """
-        return None
-
-    class Meta:
-        abstract = True
-
-def get_path(instance, filename):
-    return os.path.join(instance.content_object.short_id, filename)
-
-class ResourceFile(models.Model):
-    object_id = models.PositiveIntegerField()
-    content_type = models.ForeignKey(ContentType)
-
-    content_object = generic.GenericForeignKey('content_type', 'object_id')
-    resource_file = models.FileField(upload_to=get_path, storage=IrodsStorage() if getattr(settings,'USE_IRODS', False) else DefaultStorage())
-
-class Bags(models.Model):
-    object_id = models.PositiveIntegerField()
-    content_type = models.ForeignKey(ContentType)
-
-    content_object = generic.GenericForeignKey('content_type', 'object_id')
-    bag = models.FileField(upload_to='bags', storage=IrodsStorage() if getattr(settings,'USE_IRODS', False) else DefaultStorage(), null=True) # actually never null
-    timestamp = models.DateTimeField(default=now, db_index=True)
-
-    class Meta:
-        ordering = ['-timestamp']
-
-
-
-class GenericResource(Page, RichText, AbstractResource):
-    def __init__(self, *args, **kwargs):
-        super(GenericResource, self).__init__(*args, **kwargs)
-        # if this resource instance does not yet exists in the database
-        # create an instance of CoreMetaData and assign it to the resource instance's metadata field
-        if not self.pk:
-            md = CoreMetaData()
-            md.set_resource(res=self)
-            md.save()
-            self.metadata = md
-        else:
-            self.metadata.set_resource(res=self)
-            self.metadata.save()
-
-    metadata = models.OneToOneField(CoreMetaData, null=True, blank=True)
-
-
-    class Meta:
-        verbose_name = 'Generic Hydroshare Resource'
-
-    def can_add(self, request):
-        return AbstractResource.can_add(self, request)
-
-    def can_change(self, request):
-        return AbstractResource.can_change(self, request)
-
-    def can_delete(self, request):
-        return AbstractResource.can_delete(self, request)
-
-    def can_view(self, request):
-        return AbstractResource.can_view(self, request)
-
 def resource_processor(request, page):
     extra = page_permissions_page_processor(request, page)
     extra['res'] = page.get_content_model()
@@ -1657,7 +1670,6 @@ def resource_creation_signal_handler(sender, instance, created, **kwargs):
                 instance.dublin_metadata.create(term='AB', content=instance.content)
         else:
             resource_update_signal_handler(sender, instance, created, **kwargs)
-
 
 
 def resource_update_signal_handler(sender, instance, created, **kwargs):

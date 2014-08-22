@@ -712,7 +712,6 @@ def create_metadata_element(resource_short_id, element_model_name, **kwargs):
     :return:
     """
     res = utils.get_resource_by_shortkey(resource_short_id)
-    res.metadata.set_resource(res)
     res.metadata.create_element(element_model_name, **kwargs)
 
 def update_metadata_element(resource_short_id, element_model_name, element_id, **kwargs):
@@ -726,7 +725,6 @@ def update_metadata_element(resource_short_id, element_model_name, element_id, *
     :return:
     """
     res = utils.get_resource_by_shortkey(resource_short_id)
-    res.metadata.set_resource(res)
     res.metadata.update_element(element_model_name, element_id, **kwargs)
 
 def delete_metadata_element(resource_short_id, element_model_name, element_id):
@@ -739,7 +737,6 @@ def delete_metadata_element(resource_short_id, element_model_name, element_id):
     :return:
     """
     res = utils.get_resource_by_shortkey(resource_short_id)
-    res.metadata.set_resource(res)
     res.metadata.delete_element(element_model_name, element_id)
 
 def get_science_metadata_xml(resource_short_id):
