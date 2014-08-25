@@ -1532,6 +1532,23 @@ class CoreMetaData(models.Model):
                 'Relation',
                 'Publisher']
 
+    def delete_all_elements(self):
+        if self.title: self.title.delete()
+        if self.description: self.description.delete()
+        if self.language: self.language.delete()
+        if self.rights: self.rights.delete()
+        if self.publisher: self.publisher.delete()
+        if self.type: self.type.delete()
+
+        self.creators.all().delete()
+        self.contributors.all().delete()
+        self.dates.all().delete()
+        self.identifiers.all().delete()
+        self.coverages.all().delete()
+        self.formats.all().delete()
+        self.subjects.all().delete()
+        self.sources.all().delete()
+        self.relations.all().delete()
 
     def get_xml(self):
         from lxml import etree
@@ -1771,6 +1788,39 @@ def resource_listing_processor(request, page):
 @receiver(post_save)
 def resource_creation_signal_handler(sender, instance, created, **kwargs):
     """Create initial dublin core elements"""
+    if isinstance(instance, AbstractResource):
+        if created:
+            from hs_core.hydroshare import utils
+            import json
+            instance.metadata.create_element('title', value=instance.title)
+            if instance.content:
+                instance.metadata.create_element('description', abstract=instance.content)
+            else:
+                instance.metadata.create_element('description', abstract=instance.description)
+
+            # TODO: With the current VM the get_user_info() method fails. So we can't get the resource uri for
+            # the user now.
+            # creator_dict = users.get_user_info(instance.creator)
+            # instance.metadata.create_element('creator', name=instance.creator.get_full_name(),
+            #                                  email=instance.creator.email,
+            #                                  description=creator_dict['resource_uri'])
+
+            instance.metadata.create_element('creator', name=instance.creator.get_full_name(), email=instance.creator.email)
+
+            # TODO: The element type can't be created as we do not have an URI for specific resource types yet
+
+            instance.metadata.create_element('date', type='created', start_date=instance.created)
+            instance.metadata.create_element('date', type='modified', start_date=instance.updated)
+
+            # res_json = utils.serialize_science_metadata(instance)
+            # res_dict = json.loads(res_json)
+            instance.metadata.create_element('identifier', name='hydroShareIdentifier', url='http://hydroshare.org/resource{0}{1}'.format('/', instance.short_id))
+
+            # TODO: Subject elements need to be created from resoure's assigned keyword list
+
+        else:
+            resource_update_signal_handler(sender, instance, created, **kwargs)
+
     if isinstance(AbstractResource, sender):
         if created:
             instance.dublin_metadata.create(term='T', content=instance.title)

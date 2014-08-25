@@ -259,7 +259,7 @@ def get_checksum(pk):
 def create_resource(
         resource_type, owner, title,
         edit_users=None, view_users=None, edit_groups=None, view_groups=None,
-        keywords=None, dublin_metadata=None,
+        keywords=None, dublin_metadata=None, metadata=None,
         files=(), **kwargs):
     """
     Called by a client to add a new resource to HydroShare. The caller must have authorization to write content to
@@ -366,14 +366,23 @@ def create_resource(
                 content_object=resource
             )
 
-    hs_bagit.create_bag(resource)
+    # TODO: PK here we create a resource metadata object container based on the new implementation
+    # metadata is the new argument I added to this function
+    if metadata:
+        for element in metadata:
+            # here k is the name of the element
+            # v is a dict of all element attributes/field names and field values
+            k, v = element.items()[0]
+            resource.metadata.create_element(k, **v)
+
+    #hs_bagit.create_bag(resource)
     return resource
         
 
 def update_resource(
         pk,
         edit_users=None, view_users=None, edit_groups=None, view_groups=None,
-        keywords=None, dublin_metadata=None,
+        keywords=None, dublin_metadata=None, metadata=None,
         *files, **kwargs):
     """
     Called by clients to update a resource in HydroShare.
@@ -467,6 +476,38 @@ def update_resource(
                 content_object=resource
             )
 
+    # TODO: PK for the new metadata implementation
+    if metadata:
+        # delete all existing elements in the metadata container object
+        # note: we can't delete the metadata container object as it would delete the associated
+        # resource object (cascade delete)
+        resource.metadata.delete_all_elements()
+
+        # add the few of the metadata elements that need to be
+        # created from the resource properties (like title, abstract, created date etc)
+        resource.metadata.create_element('title', value=resource.title)
+        if resource.content:
+            resource.metadata.create_element('description', abstract=resource.content)
+        else:
+            resource.metadata.create_element('description', abstract=resource.description)
+
+        resource.metadata.create_element('creator', name=resource.creator.get_full_name(), email=resource.creator.email)
+
+        resource.metadata.create_element('date', type='created', start_date=resource.created)
+        resource.metadata.create_element('date', type='modified', start_date=resource.updated)
+        resource.metadata.create_element('identifier', name='hydroShareIdentifier',
+                                         url='http://hydroshare.org/resource{0}{1}'.format('/', resource.short_id))
+
+        # TODO: add the type element (once we have an url for the resource type
+
+        # then create the rest of the elements form the user provided data
+        for element in metadata:
+            # here k is the name of the element
+            # v is a dict of all element attributes/field names and field values
+            k, v = element.items()[0]
+            resource.metadata.create_element(k, **v)
+
+
     return resource
 
 def add_resource_files(pk, *files):
@@ -517,7 +558,7 @@ def update_system_metadata(pk, **kwargs):
     return update_science_metadata(pk, **kwargs)
 
 
-def update_science_metadata(pk, dublin_metadata=None, keywords=None, **kwargs):
+def update_science_metadata(pk, dublin_metadata=None, metadata=None, keywords=None, **kwargs):
     """
     Called by clients to update the science metadata for a resource in HydroShare.
 
@@ -570,6 +611,10 @@ def update_science_metadata(pk, dublin_metadata=None, keywords=None, **kwargs):
                 content=d['content'],
                 content_object=resource
             )
+
+    # TODO: PK for the new metadata implementation
+    if metadata:
+        _update_science_metadata(resource, metadata)
 
     if kwargs:
         for field, value in kwargs.items():
@@ -748,3 +793,33 @@ def get_science_metadata_xml(resource_short_id):
     """
     res = utils.get_resource_by_shortkey(resource_short_id)
     return res.metadata.get_xml()
+
+def _update_science_metadata(resource, metadata):
+    # delete all existing elements in the metadata container object
+    # note: we can't delete the metadata container object as it would delete the associated
+    # resource object (cascade delete)
+    resource.metadata.delete_all_elements()
+
+    # add the few of the metadata elements that need to be
+    # created from the resource properties (like title, abstract, created date etc)
+    resource.metadata.create_element('title', value=resource.title)
+    if resource.content:
+        resource.metadata.create_element('description', abstract=resource.content)
+    else:
+        resource.metadata.create_element('description', abstract=resource.description)
+
+    resource.metadata.create_element('creator', name=resource.creator.get_full_name(), email=resource.creator.email)
+
+    resource.metadata.create_element('date', type='created', start_date=resource.created)
+    resource.metadata.create_element('date', type='modified', start_date=resource.updated)
+    resource.metadata.create_element('identifier', name='hydroShareIdentifier',
+                                     url='http://hydroshare.org/resource{0}{1}'.format('/', resource.short_id))
+
+    # TODO: add the type element (once we have an url for the resource type
+
+    # then create the rest of the elements form the user provided data
+    for element in metadata:
+        # here k is the name of the element
+        # v is a dict of all element attributes/field names and field values
+        k, v = element.items()[0]
+        resource.metadata.create_element(k, **v)
