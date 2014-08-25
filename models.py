@@ -12,6 +12,7 @@ from uuid import uuid4
 from mezzanine.core.models import Ownable
 from mezzanine.generic.fields import CommentsField
 from mezzanine.conf import settings as s
+from mezzanine.generic.models import Keyword, AssignedKeyword
 import os.path
 from django_irods.storage import IrodsStorage
 # from dublincore.models import QualifiedDublinCoreElement
@@ -1532,6 +1533,7 @@ class CoreMetaData(models.Model):
                 'Relation',
                 'Publisher']
 
+    # this method needs to be overriden by any subclass of this class
     def delete_all_elements(self):
         if self.title: self.title.delete()
         if self.description: self.description.delete()
@@ -1807,7 +1809,7 @@ def resource_creation_signal_handler(sender, instance, created, **kwargs):
 
             instance.metadata.create_element('creator', name=instance.creator.get_full_name(), email=instance.creator.email)
 
-            # TODO: The element type can't be created as we do not have an URI for specific resource types yet
+            # TODO: The element 'Type' can't be created as we do not have an URI for specific resource types yet
 
             instance.metadata.create_element('date', type='created', start_date=instance.created)
             instance.metadata.create_element('date', type='modified', start_date=instance.updated)
@@ -1815,8 +1817,6 @@ def resource_creation_signal_handler(sender, instance, created, **kwargs):
             # res_json = utils.serialize_science_metadata(instance)
             # res_dict = json.loads(res_json)
             instance.metadata.create_element('identifier', name='hydroShareIdentifier', url='http://hydroshare.org/resource{0}{1}'.format('/', instance.short_id))
-
-            # TODO: Subject elements need to be created from resoure's assigned keyword list
 
         else:
             resource_update_signal_handler(sender, instance, created, **kwargs)

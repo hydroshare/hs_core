@@ -29,21 +29,26 @@ class TestCoreMetadata(TestCase):
             self.tearDown()
             self.user = User.objects.create_user('user1', email='user1@nowhere.com')
 
-        md = CoreMetaData()
-        md.save()
-        self.res, created = GenericResource.objects.get_or_create(
-            user=self.user,
+        # md = CoreMetaData()
+        # md.save()
+        # self.res, created = GenericResource.objects.get_or_create(
+        #     user=self.user,
+        #     title='Generic resource',
+        #     creator=self.user,
+        #     last_changed_by=self.user,
+        #     doi='doi1000100010001',
+        #     public=False
+        # )
+        #
+        # if created:
+        #     self.res.owners.add(self.user)
+
+        self.res = hydroshare.create_resource(
+            resource_type='GenericResource',
+            owner=self.user,
             title='Generic resource',
-            creator=self.user,
-            last_changed_by=self.user,
-            doi='doi1000100010001',
-            public=False
+            keywords=['kw1', 'kw2']
         )
-
-        if created:
-            self.res.owners.add(self.user)
-
-
     def tearDown(self):
         User.objects.all().delete()
         Group.objects.all().delete()
@@ -84,6 +89,13 @@ class TestCoreMetadata(TestCase):
         self.assertEqual(self.res.metadata.identifiers.all().count(), 1, msg="Number of identifier elements not equal to 1.")
         self.assertIn('hydroShareIdentifier', [id.name for id in self.res.metadata.identifiers.all()],
                       msg="Identifier name was not found.")
+
+        self.assertEqual(self.res.metadata.subjects.all().count(), 2, msg="Number of subjects elements not equal to 2.")
+        self.assertIn('kw1', [sub.value for sub in self.res.metadata.subjects.all()],
+                      msg="Subject value 'kw1' was not found.")
+
+        self.assertIn('kw2', [sub.value for sub in self.res.metadata.subjects.all()],
+                      msg="Subject value 'kw2' was not found.")
 
         # TODO: there should be a resource 'Type' element - can't test this until we have an url for resource type description.
 
@@ -798,8 +810,11 @@ class TestCoreMetadata(TestCase):
 
 
     def test_subject(self):
-        # there should not be any subject elements for this resource
-        self.assertEqual(self.res.metadata.subjects.all().count(), 0, msg="Number of subject elements found not be 0.")
+        # there should be 2 subject elements for this resource as we provided to keywords when creating the resource
+        self.assertEqual(self.res.metadata.subjects.all().count(), 2, msg="Number of subject elements found not be 2.")
+
+        # delete all existing subject elements
+        self.res.metadata.subjects.all().delete()
 
         # add a subject element
         resource.create_metadata_element(self.res.short_id,'subject', value='sub-1')
@@ -922,6 +937,8 @@ class TestCoreMetadata(TestCase):
         resource.create_metadata_element(self.res.short_id,'format', value=format_csv)
 
         # add 'DOI' identifier
+        self.res.doi='doi1000100010001'
+        self.res.save()
         resource.create_metadata_element(self.res.short_id,'identifier', name='DOI', url="http://dx.doi.org/001")
 
         # add a language element

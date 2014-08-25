@@ -14,7 +14,7 @@ from dublincore.models import QualifiedDublinCoreElement as QDCE
 from mezzanine.generic.models import Keyword, AssignedKeyword
 
 
-class UpdateMetadataTest(TestCase):
+class TestUpdateMetadata(TestCase):
     def setUp(self):
         user = hydroshare.create_account(
             'shaun@gmail.com',

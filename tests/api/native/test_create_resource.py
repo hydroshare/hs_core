@@ -74,7 +74,7 @@ class TestCreateResource(TestCase):
             {'identifier': {'name':'someIdentifier', 'url':"http://some.org/001"}},
             {'language': {'code':'eng'}},
             {'relation': {'type':'isPartOf', 'value':'http://hydroshare.org/resource/001'}},
-            {'rights': {'statement':'This is the rights statement for this resource', 'url':'http://rights.ord/001'}},
+            {'rights': {'statement':'This is the rights statement for this resource', 'url':'http://rights.org/001'}},
             {'source': {'derived_from':'http://hydroshare.org/resource/0001'}},
             {'subject': {'value':'sub-1'}},
             {'subject': {'value':'sub-2'}},
@@ -120,12 +120,12 @@ class TestCreateResource(TestCase):
                          msg="Number of source elements is not equal to 1")
 
         self.assertEqual(res.metadata.rights.statement, 'This is the rights statement for this resource', msg="Statement of rights did not match.")
-        self.assertEqual(res.metadata.rights.url, 'http://rights.ord/001', msg="URL of rights did not match.")
+        self.assertEqual(res.metadata.rights.url, 'http://rights.org/001', msg="URL of rights did not match.")
 
         self.assertEqual(res.metadata.sources.all().count(), 1, msg="Number of sources is not equal to 1.")
         self.assertIn('http://hydroshare.org/resource/0001',
                       [src.derived_from for src in res.metadata.sources.all()],
-                      msg="Source element with derived from avlue of %s does not exist."
+                      msg="Source element with derived from value of %s does not exist."
                           % 'http://hydroshare.org/resource/0001')
 
         # there should be 2 subject elements for this resource
@@ -134,5 +134,5 @@ class TestCreateResource(TestCase):
                       msg="Subject element with value of %s does not exist." % 'sub-1')
         self.assertIn('sub-2', [sub.value for sub in res.metadata.subjects.all()],
                       msg="Subject element with value of %s does not exist." % 'sub-1')
-        #print(bad)
+
 

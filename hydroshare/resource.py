@@ -301,6 +301,7 @@ def create_resource(
     :param view_groups: list of group names or Group instances who will be given view permissions
     :param keywords: string list. list of keywords to add to the resource
     :param dublin_metadata: list of dicts containing keys { 'term', 'content' } respecting dublin core std.
+    :param metadata: list of dicts containing keys (element names) and corresponding values as dicts { 'creator': {'name':'John Smith'}}.
     :param files: list of Django File or UploadedFile objects to be attached to the resource
     :param kwargs: extra arguments to fill in required values in AbstractResource subclasses
 
@@ -358,6 +359,7 @@ def create_resource(
         for k in ks:
             AssignedKeyword.objects.create(content_object=resource, keyword=k)
 
+    # for creating metadata elements based on the old metadata implementation
     if dublin_metadata:
         for d in dublin_metadata:
             QualifiedDublinCoreElement.objects.create(
@@ -366,8 +368,7 @@ def create_resource(
                 content_object=resource
             )
 
-    # TODO: PK here we create a resource metadata object container based on the new implementation
-    # metadata is the new argument I added to this function
+    # for creating metadata elements based on the new metadata implementation
     if metadata:
         for element in metadata:
             # here k is the name of the element
@@ -375,7 +376,11 @@ def create_resource(
             k, v = element.items()[0]
             resource.metadata.create_element(k, **v)
 
-    #hs_bagit.create_bag(resource)
+    # add the subject elements from the AssignedKeywords (new metadata implementation)
+    for akw in AssignedKeyword.objects.filter(object_pk=resource.id).all():
+        resource.metadata.create_element('subject', value=akw.keyword.title)
+
+    hs_bagit.create_bag(resource)
     return resource
         
 
@@ -465,8 +470,9 @@ def update_resource(
         ks = zip(*ks)[0]  # ignore whether something was created or not.  zip is its own inverse
 
         for k in ks:
-            AssignedKeyword.objects.create(content_object=resource.id, keyword=k)
+            AssignedKeyword.objects.create(content_object=resource, keyword=k)
 
+    # for creating metadata elements based on the old metadata implementation
     if dublin_metadata:
         QualifiedDublinCoreElement.objects.filter(object_id=resource.id).delete()
         for d in dublin_metadata:
@@ -476,37 +482,9 @@ def update_resource(
                 content_object=resource
             )
 
-    # TODO: PK for the new metadata implementation
+    # for creating metadata elements based on the new metadata implementation
     if metadata:
-        # delete all existing elements in the metadata container object
-        # note: we can't delete the metadata container object as it would delete the associated
-        # resource object (cascade delete)
-        resource.metadata.delete_all_elements()
-
-        # add the few of the metadata elements that need to be
-        # created from the resource properties (like title, abstract, created date etc)
-        resource.metadata.create_element('title', value=resource.title)
-        if resource.content:
-            resource.metadata.create_element('description', abstract=resource.content)
-        else:
-            resource.metadata.create_element('description', abstract=resource.description)
-
-        resource.metadata.create_element('creator', name=resource.creator.get_full_name(), email=resource.creator.email)
-
-        resource.metadata.create_element('date', type='created', start_date=resource.created)
-        resource.metadata.create_element('date', type='modified', start_date=resource.updated)
-        resource.metadata.create_element('identifier', name='hydroShareIdentifier',
-                                         url='http://hydroshare.org/resource{0}{1}'.format('/', resource.short_id))
-
-        # TODO: add the type element (once we have an url for the resource type
-
-        # then create the rest of the elements form the user provided data
-        for element in metadata:
-            # here k is the name of the element
-            # v is a dict of all element attributes/field names and field values
-            k, v = element.items()[0]
-            resource.metadata.create_element(k, **v)
-
+        _update_science_metadata(resource, metadata)
 
     return resource
 
@@ -603,6 +581,7 @@ def update_science_metadata(pk, dublin_metadata=None, metadata=None, keywords=No
         for k in ks:
             AssignedKeyword.objects.create(content_object=resource.id, keyword=k)
 
+    # for creating metadata elements based on the old metadata implementation
     if dublin_metadata:
         QualifiedDublinCoreElement.objects.filter(object_id=resource.id).delete()
         for d in dublin_metadata:
@@ -612,7 +591,7 @@ def update_science_metadata(pk, dublin_metadata=None, metadata=None, keywords=No
                 content_object=resource
             )
 
-    # TODO: PK for the new metadata implementation
+    # for creating metadata elements based on the new metadata implementation
     if metadata:
         _update_science_metadata(resource, metadata)
 
@@ -817,9 +796,13 @@ def _update_science_metadata(resource, metadata):
 
     # TODO: add the type element (once we have an url for the resource type
 
+    # add the subject elements from the AssignedKeywords
+    for akw in AssignedKeyword.objects.filter(object_pk=resource.id).all():
+        resource.metadata.create_element('subject', value=akw.keyword.title)
+
     # then create the rest of the elements form the user provided data
     for element in metadata:
         # here k is the name of the element
-        # v is a dict of all element attributes/field names and field values
+        # v is a dict of all element attributes/field names and corresponding values
         k, v = element.items()[0]
         resource.metadata.create_element(k, **v)
