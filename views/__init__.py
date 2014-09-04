@@ -4,6 +4,7 @@ from django.contrib.auth import login, authenticate
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import Group, User
 from django.contrib.sites.models import Site
+from django.core.exceptions import ValidationError
 from django.http import HttpResponseRedirect, HttpResponse
 from django.shortcuts import get_object_or_404, render_to_response
 from django.template import RequestContext
@@ -353,6 +354,8 @@ def create_resource(request, *args, **kwargs):
             content=frm.cleaned_data['abstract'] or frm.cleaned_data['title']
         )
         return HttpResponseRedirect(res.get_absolute_url())
+    else:
+        raise ValidationError(frm.errors)
 
 @login_required
 def get_file(request, *args, **kwargs):
