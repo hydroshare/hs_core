@@ -2,6 +2,7 @@
 from django.core.exceptions import ObjectDoesNotExist
 from django.core.files import File
 from django.core.files.uploadedfile import UploadedFile
+import django.dispatch
 from django.contrib.auth.models import User
 from mezzanine.generic.models import Keyword, AssignedKeyword
 from dublincore.models import QualifiedDublinCoreElement
@@ -10,6 +11,10 @@ from hs_core.hydroshare.utils import get_resource_types
 from hs_core.models import ResourceFile
 from . import utils
 import os
+
+
+pre_create_resource = django.dispatch.Signal(providing_args=['dublin_metadata', 'files'])
+post_create_resource = django.dispatch.Signal(providing_args=['resource'])
 
 
 def get_resource(pk):
@@ -314,6 +319,10 @@ def create_resource(
     else:
         raise NotImplementedError("Type {resource_type} does not exist".format(resource_type=resource_type))
 
+    # Send pre-create resource signal
+    pre_create_resource.send(sender=cls, dublin_metadata=dublin_metadata, files=files,
+                             **kwargs)
+
     owner = utils.user_from_id(owner)
 
     # create the resource
@@ -381,6 +390,10 @@ def create_resource(
         resource.metadata.create_element('subject', value=akw.keyword.title)
 
     hs_bagit.create_bag(resource)
+
+    # Send post-create resource signal
+    post_create_resource.send(sender=cls, resource=resource)
+
     return resource
         
 
