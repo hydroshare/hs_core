@@ -94,15 +94,17 @@ def group_from_id(grp):
 
 
 def serialize_science_metadata(res):
-    serializer = get_serializer(res)
-    bundle = serializer.build_bundle(obj=res)
-    return serializer.serialize(None, serializer.full_dehydrate(bundle), 'application/json')
+    pass
+    #serializer = get_serializer(res)
+    #bundle = serializer.build_bundle(obj=res)
+    #return serializer.serialize(None, serializer.full_dehydrate(bundle), 'application/json')
 
 
 def serialize_system_metadata(res):
-    serializer = get_serializer(res)
-    bundle = serializer.build_bundle(obj=res)
-    return serializer.serialize(None, serializer.full_dehydrate(bundle), 'application/json')
+    pass
+#    serializer = get_serializer(res)
+#    bundle = serializer.build_bundle(obj=res)
+#    return serializer.serialize(None, serializer.full_dehydrate(bundle), 'application/json')
 
 # Implementation by Pabitra
 
@@ -112,8 +114,8 @@ def serialize_science_metadata_xml(res):
     :param res: the resource object for which science metadata to be generated
     :return: a string as xml document
    """
-    res_json = serialize_science_metadata(res)
-    res_dict = json.loads(res_json)
+    # res_json = serialize_science_metadata(res)
+    res_dict = {} #json.loads(res_json)
 
     XML_HEADER = '''<?xml version="1.0"?>
 <!DOCTYPE rdf:RDF PUBLIC "-//DUBLIN CORE//DCMES DTD 2002/07/31//EN"
@@ -386,16 +388,18 @@ def serialize_science_metadata_xml(res):
 
     return XML_HEADER + '\n' + etree.tostring(RDF_ROOT, pretty_print=True)
 
-def serialize_resource_map(res):
-    serializer = get_serializer(res)
-    bundle = serializer.build_bundle(obj=res)
-    return serializer.serialize(None, serializer.full_dehydrate(bundle), 'application/json')
+#def serialize_resource_map(res):
+#    pass
+    #serializer = get_serializer(res)
+    #bundle = serializer.build_bundle(obj=res)
+    #return serializer.serialize(None, serializer.full_dehydrate(bundle), 'application/json')
 
-def get_serializer(resource):
-    tastypie_module = resource._meta.app_label + '.api'        # the module name should follow this convention
-    tastypie_name = resource._meta.object_name + 'Resource'    # the classname of the Resource seralizer
-    tastypie_api = importlib.import_module(tastypie_module)    # import the module
-    return getattr(tastypie_api, tastypie_name)()        # make an instance of the tastypie resource
+#def get_serializer(resource):
+#    pass
+    #tastypie_module = resource._meta.app_label + '.api'        # the module name should follow this convention
+    #tastypie_name = resource._meta.object_name + 'Resource'    # the classname of the Resource seralizer
+    #tastypie_api = importlib.import_module(tastypie_module)    # import the module
+    #return getattr(tastypie_api, tastypie_name)()        # make an instance of the tastypie resource
 
 
 def resource_modified(resource, by_user=None):
