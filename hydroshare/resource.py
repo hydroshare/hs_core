@@ -323,12 +323,7 @@ def create_resource(
         raise NotImplementedError("Type {resource_type} does not exist".format(resource_type=resource_type))
 
     # Send pre-create resource signal
-<<<<<<< Updated upstream
-    pre_create_resource.send(sender=cls, dublin_metadata=dublin_metadata, files=files,
-                             **kwargs)
-=======
     pre_create_resource.send(sender=cls, dublin_metadata=dublin_metadata, files=files, **kwargs)
->>>>>>> Stashed changes
 
     owner = utils.user_from_id(owner)
 
