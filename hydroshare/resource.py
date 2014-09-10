@@ -12,6 +12,8 @@ from hs_core.models import ResourceFile
 from . import utils
 import os
 
+pre_create_resource = django.dispatch.Signal(providing_args=['dublin_metadata', 'files'])
+post_create_resource = django.dispatch.Signal(providing_args=['resource'])
 
 pre_create_resource = django.dispatch.Signal(providing_args=['dublin_metadata', 'files'])
 post_create_resource = django.dispatch.Signal(providing_args=['resource'])
@@ -321,8 +323,12 @@ def create_resource(
         raise NotImplementedError("Type {resource_type} does not exist".format(resource_type=resource_type))
 
     # Send pre-create resource signal
+<<<<<<< Updated upstream
     pre_create_resource.send(sender=cls, dublin_metadata=dublin_metadata, files=files,
                              **kwargs)
+=======
+    pre_create_resource.send(sender=cls, dublin_metadata=dublin_metadata, files=files, **kwargs)
+>>>>>>> Stashed changes
 
     owner = utils.user_from_id(owner)
 
