@@ -105,7 +105,7 @@ def serialize_science_metadata(res):
     resd['dublin_core'] = [dc['fields'] for dc in json.loads(js.serialize(res.dublin_metadata.all()))]
     resd['bags'] = [dc['fields'] for dc in json.loads(js.serialize(res.bags.all()))]
     resd['files'] = [dc['fields'] for dc in json.loads(js.serialize(res.files.all()))]
-    return resd
+    return json.dumps(resd)
 
 
 def serialize_system_metadata(res):
@@ -119,7 +119,7 @@ def serialize_system_metadata(res):
     resd['dublin_core'] = [dc['fields'] for dc in json.loads(js.serialize(res.dublin_metadata.all()))]
     resd['bags'] = [dc['fields'] for dc in json.loads(js.serialize(res.bags.all()))]
     resd['files'] = [dc['fields'] for dc in json.loads(js.serialize(res.files.all()))]
-    return resd
+    return json.dumps(resd)
 
 # Implementation by Pabitra
 
