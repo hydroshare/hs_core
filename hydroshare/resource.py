@@ -15,9 +15,6 @@ import os
 pre_create_resource = django.dispatch.Signal(providing_args=['dublin_metadata', 'files'])
 post_create_resource = django.dispatch.Signal(providing_args=['resource'])
 
-pre_create_resource = django.dispatch.Signal(providing_args=['dublin_metadata', 'files'])
-post_create_resource = django.dispatch.Signal(providing_args=['resource'])
-
 
 def get_resource(pk):
     """
