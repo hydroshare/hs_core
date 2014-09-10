@@ -94,17 +94,31 @@ def group_from_id(grp):
 
 
 def serialize_science_metadata(res):
-    pass
-    #serializer = get_serializer(res)
-    #bundle = serializer.build_bundle(obj=res)
-    #return serializer.serialize(None, serializer.full_dehydrate(bundle), 'application/json')
+    js = get_serializer('json')()
+    resd = json.loads(js.serialize([res]))[0]['fields']
+    resd.update(json.loads(js.serialize([res.page_ptr]))[0]['fields'])
+
+    resd['user'] = json.loads(js.serialize([res.user]))[0]['fields']
+    resd['resource_uri'] = resd['short_id']
+    resd['user']['resource_uri'] = '/u/' + resd['user']['username']
+    resd['dublin_core'] = [dc['fields'] for dc in json.loads(js.serialize(res.dublin_metadata.all()))]
+    resd['bags'] = [dc['fields'] for dc in json.loads(js.serialize(res.bags.all()))]
+    resd['files'] = [dc['fields'] for dc in json.loads(js.serialize(res.files.all()))]
+    return resd
 
 
 def serialize_system_metadata(res):
-    pass
-#    serializer = get_serializer(res)
-#    bundle = serializer.build_bundle(obj=res)
-#    return serializer.serialize(None, serializer.full_dehydrate(bundle), 'application/json')
+    js = get_serializer('json')()
+    resd = json.loads(js.serialize([res]))[0]['fields']
+    resd.update(json.loads(js.serialize([res.page_ptr]))[0]['fields'])
+
+    resd['user'] = json.loads(js.serialize([res.user]))[0]['fields']
+    resd['resource_uri'] = resd['short_id']
+    resd['user']['resource_uri'] = '/u/' + resd['user']['username']
+    resd['dublin_core'] = [dc['fields'] for dc in json.loads(js.serialize(res.dublin_metadata.all()))]
+    resd['bags'] = [dc['fields'] for dc in json.loads(js.serialize(res.bags.all()))]
+    resd['files'] = [dc['fields'] for dc in json.loads(js.serialize(res.files.all()))]
+    return resd
 
 # Implementation by Pabitra
 
@@ -114,8 +128,8 @@ def serialize_science_metadata_xml(res):
     :param res: the resource object for which science metadata to be generated
     :return: a string as xml document
    """
-    # res_json = serialize_science_metadata(res)
-    res_dict = {} #json.loads(res_json)
+    res_json = serialize_science_metadata(res)
+    res_dict = json.loads(res_json)
 
     XML_HEADER = '''<?xml version="1.0"?>
 <!DOCTYPE rdf:RDF PUBLIC "-//DUBLIN CORE//DCMES DTD 2002/07/31//EN"
