@@ -103,7 +103,7 @@ def serialize_science_metadata(res):
     resd['user'] = json.loads(js.serialize([res.user]))[0]['fields']
     resd['resource_uri'] = resd['short_id']
     resd['user']['resource_uri'] = '/u/' + resd['user']['username']
-    resd['dublin_core'] = [dc['fields'] for dc in json.loads(js.serialize(res.dublin_metadata.all()))]
+    resd['dublin_metadata'] = [dc['fields'] for dc in json.loads(js.serialize(res.dublin_metadata.all()))]
     resd['bags'] = [dc['fields'] for dc in json.loads(js.serialize(res.bags.all()))]
     resd['files'] = [dc['fields'] for dc in json.loads(js.serialize(res.files.all()))]
     return resd
@@ -117,7 +117,7 @@ def serialize_system_metadata(res):
     resd['user'] = json.loads(js.serialize([res.user]))[0]['fields']
     resd['resource_uri'] = resd['short_id']
     resd['user']['resource_uri'] = '/u/' + resd['user']['username']
-    resd['dublin_core'] = [dc['fields'] for dc in json.loads(js.serialize(res.dublin_metadata.all()))]
+    resd['dublin_metadata'] = [dc['fields'] for dc in json.loads(js.serialize(res.dublin_metadata.all()))]
     resd['bags'] = [dc['fields'] for dc in json.loads(js.serialize(res.bags.all()))]
     resd['files'] = [dc['fields'] for dc in json.loads(js.serialize(res.files.all()))]
     return resd
