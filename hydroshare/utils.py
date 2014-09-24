@@ -131,7 +131,7 @@ def serialize_science_metadata_xml(res):
     :return: a string as xml document
    """
     res_json = serialize_science_metadata(res)
-    res_dict = json.loads(res_json)
+    res_dict = json.loads(res_json) if isinstance(res_json, basestring) else res_json
 
     XML_HEADER = '''<?xml version="1.0"?>
 <!DOCTYPE rdf:RDF PUBLIC "-//DUBLIN CORE//DCMES DTD 2002/07/31//EN"
