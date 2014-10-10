@@ -40,6 +40,7 @@ def create_bag(resource):
 
     :return: the hs_core.models.Bags instance associated with the new bag.
     """
+
     dest_prefix = getattr(settings, 'BAGIT_TEMP_LOCATION', '/tmp/hydroshare/')
     bagit_path = os.path.join(dest_prefix, resource.short_id, arrow.get(resource.updated).format("YYYY.MM.DD.HH.mm.ss"))
     visualization_path = os.path.join(bagit_path, 'visualization')
@@ -74,13 +75,11 @@ def create_bag(resource):
     with open(bagit_path + '/resourcemetadata.xml', 'w') as out:
         import utils as hs_utils
         out.write(hs_utils.serialize_science_metadata_xml(resource))
-
     hs_res_url = os.path.join('http://hydroshare.org/resources', resource.title)
     metadata_url = os.path.join(hs_res_url, 'resourcemetadata.json')
     res_map_url = os.path.join(hs_res_url, 'resourcemap.xml')
 
     ##make the resource map:
-        
     utils.namespaces['hsterms'] = Namespace('http://hydroshare.org/hydroshare/terms/')
     utils.namespaceSearchOrder.append('hsterms')
     utils.namespaces['citoterms'] = Namespace('http://purl.org/spar/cito/')
@@ -102,6 +101,7 @@ def create_bag(resource):
     resMetaFile._citoterms.documents = ag_url
     resMetaFile._dcterms.isAggregatedBy = ag_url
     resMetaFile._dcterms.format = "application/rdf+xml"
+
 
     #Create a description of the content file and add it to the aggregation
     files = ResourceFile.objects.filter(object_id=resource.id)
