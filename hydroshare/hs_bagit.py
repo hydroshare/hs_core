@@ -146,7 +146,7 @@ def create_bag(resource):
         bag=File(open(zf)),
         timestamp=resource.updated
     )
-
+    #raise Exception(b)
     os.unlink(zf)
     shutil.rmtree(bagit_path)
 
